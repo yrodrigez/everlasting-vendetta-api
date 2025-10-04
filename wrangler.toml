@@ -1,0 +1,11 @@
+name = "ev-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+    { pattern = "api.everlastingvendetta.com", custom_domain = true }
+]
+
+[observability]
+enabled = true

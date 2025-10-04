@@ -1,0 +1,6 @@
+.env
+.claude
+.vscode
+node_modules
+.wrangler
+.dev.vars
