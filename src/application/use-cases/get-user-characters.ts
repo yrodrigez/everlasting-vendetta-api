@@ -83,23 +83,13 @@ export class GetUserCharacters {
                             );
                         }
 
-                        // Fetch updated character data from Blizzard
-                        const character = await this.charactersService.getCharacter(
+                        // Fetch updated character data from Blizzard (with avatar)
+                        const character = await this.charactersService.getCharacterWithAvatar(
                             char.realm.slug,
                             char.name,
                         );
 
                         this.logger.info(`Fetched updated character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
-
-                        // Fetch character avatar
-                        const avatar = await this.charactersService.getCharacterAvatar(
-                            char.realm.slug,
-                            char.name,
-                        );
-
-                        if (character && avatar) {
-                            return character.withAvatar(avatar);
-                        }
 
                         return character;
                     } catch (error) {

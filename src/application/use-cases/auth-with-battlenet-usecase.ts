@@ -61,23 +61,13 @@ export class AuthenticateWithBattleNetUseCase {
                         return char;
                     }
 
-                    const character = await this.charactersService.getCharacter(
+                    const character = await this.charactersService.getCharacterWithAvatar(
                         char.realm.slug,
                         char.name,
                     );
                     this.logger.info(`Fetched character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
 
-
-                    const avatar = await this.charactersService.getCharacterAvatar(
-                        char.realm.slug,
-                        char.name,
-                    );
-
-                    if (character && avatar) {
-                        return character.withAvatar(avatar);
-                    }
-
-                    return char;
+                    return character;
                 } catch (e) {
                     this.logger.error(`Error fetching character ${char.name} with level on realm ${char.realm.slug}`, e);
                     return char;

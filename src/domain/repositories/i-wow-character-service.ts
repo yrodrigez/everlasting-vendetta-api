@@ -9,4 +9,8 @@ export interface IWowCharacterService {
         realmSlug: string,
         characterName: string,
     ): Promise<WoWCharacter>;
+    getCharacterWithAvatar(
+        realmSlug: string,
+        characterName: string,
+    ): Promise<WoWCharacter>;
 }

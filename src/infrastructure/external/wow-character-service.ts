@@ -62,11 +62,21 @@ export class WowCharacterService extends BlizzardApi
 			);
 		}
 
-		const data = await response.json();
+		const data = await response.json() as { assets?: { key: string; value: string }[] };
 		const avatarObject =
-			data?.assets?.find((asset: { key: string; value: string }) => asset?.key === "avatar") ??
+			(data?.assets ?? []).find((asset: { key: string; value: string }) => asset?.key === "avatar") ??
 			{ value: "/avatar-anon.png" };
 
 		return avatarObject.value;
+	}
+
+	async getCharacterWithAvatar(realmSlug: string, characterName: string): Promise<WoWCharacter> {
+		// Fetch both character data and avatar in parallel for better performance
+		const [character, avatar] = await Promise.all([
+			this.getCharacter(realmSlug, characterName),
+			this.getCharacterAvatar(realmSlug, characterName)
+		]);
+
+		return character.withAvatar(avatar);
 	}
 }
