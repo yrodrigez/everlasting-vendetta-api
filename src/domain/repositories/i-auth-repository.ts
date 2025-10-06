@@ -1,44 +1,36 @@
+import { RefreshToken } from "@entities/auth/refresh-token";
+import { OAuthProvider } from "src/domain/types/auth-types";
+import {
+    StoreRefreshTokenDTO,
+    RotateTokenDTO,
+    CreateTokenFamilyDTO,
+    RevokeRefreshTokenDTO,
+    RevokeFamilyTokensDTO,
+    StoreOauthTokenDTO,
+    FindOrCreateUserDTO,
+    MarkTokenAsRotatedDTO,
+    OauthProviderDTO,
+    FindOrCreateUserResponseDTO
+} from "@dto/auth";
+
 export interface IAuthRepository {
-    findOrCreateUser(
-        provider: string,
-        providerUserId: string,
-        username: string,
-    ): Promise<{ userId: string; isNewUser: boolean; }>;
-    storeOauthToken(
-        userId: string,
-        provider: 'bnet' | 'discord',
-        providerUserId: string,
-        providerUsername: string,
-        accessToken: string,
-        refreshToken: string | null,
-        expiresAt: Date
-    ): Promise<void>;
+    findOrCreateUser(dto: FindOrCreateUserDTO): Promise<FindOrCreateUserResponseDTO>;
 
-    storeRefreshToken(
-        userId: string,
-        tokenJti: string,      // Extracted from JWT
-        familyId: string,
-        provider: 'bnet' | 'discord',
-        expiresAt: Date,
-        ipAddress?: string,
-        userAgent?: string
-    ): Promise<void>;
+    storeOauthToken(dto: StoreOauthTokenDTO): Promise<void>;
 
-    getRefreshToken(tokenJti: string): Promise<{
-        user_id: string;
-        token_jti: string;
-        family_id: string;
-        provider: 'bnet' | 'discord';
-        expires_at: string; // ISO date string
-        revoked: boolean;
-        created_at: string; // ISO date string
-        ip_address: string | null;
-        user_agent: string | null;
-    } | null>;
+    storeRefreshToken(dto: StoreRefreshTokenDTO): Promise<void>;
 
-    markTokenAsRotated(oldTokenJti: string, newTokenJti: string): Promise<void>;
-    revokeRefreshToken(tokenJti: string, reason: 'manual' | 'breach_detected' | 'logout_all'): Promise<void>;
-    revokeFamilyTokens(familyId: string, reason: 'manual' | 'breach_detected' | 'logout_all'): Promise<void>;
+    getOauthProvider(userId: string, provider: OAuthProvider): Promise<OauthProviderDTO | null>;
 
-    createTokenFamily(userId: string, provider: 'bnet' | 'discord', ipAddress?: string): Promise<string>;
+    getRefreshToken(tokenJti: string): Promise<RefreshToken | null>;
+
+    markTokenAsRotated(dto: MarkTokenAsRotatedDTO): Promise<void>;
+
+    rotateToken(dto: RotateTokenDTO): Promise<void>;
+
+    revokeRefreshToken(dto: RevokeRefreshTokenDTO): Promise<void>;
+
+    revokeFamilyTokens(dto: RevokeFamilyTokensDTO): Promise<void>;
+
+    createTokenFamily(dto: CreateTokenFamilyDTO): Promise<string>;
 }

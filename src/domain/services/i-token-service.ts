@@ -1,7 +1,7 @@
-import { AccessTokenPayload } from "@dto/access-token-payload";
-import { GenerateTokenPairInput } from "@dto/generate-token-pair-input";
-import { RefreshTokenPayload } from "@dto/refresh-token-payload";
-import { TokenPair } from "@dto/token-pair";
+import { AccessTokenPayload } from "@dto/auth/access-token-payload";
+import { GenerateTokenPairInput } from "@dto/auth/generate-token-pair-input";
+import { RefreshTokenPayload } from "@dto/auth/refresh-token-payload";
+import { TokenPair } from "@dto/auth/token-pair";
 
 export interface ITokenService {
 

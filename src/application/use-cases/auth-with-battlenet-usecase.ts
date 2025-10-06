@@ -1,5 +1,5 @@
-import { AuthenticateUserWithBattleNetInput } from "@dto/auth-user-with-battlenet-input";
-import { AuthenticateUserWithBattleNetOutput } from "@dto/auth-user-with-battlenet-output";
+import { AuthenticateUserWithBattleNetInput } from "@dto/auth/auth-user-with-battlenet-input";
+import { AuthenticateUserWithBattleNetOutput } from "@dto/auth/auth-user-with-battlenet-output";
 import { Member, MemberCharacter } from "@entities/member";
 import { WoWCharacter } from "@entities/wow/wow-character";
 import { AuthError } from "@errors/auth-error";
@@ -45,11 +45,11 @@ export class AuthenticateWithBattleNetUseCase {
         const { battletag, id } = await this.blizzardOAuthService.getUserInfo(bnetToken);
         const providerUserId = id.toString();
         const providerUsername = battletag;
-        const { userId } = await this.authRepository.findOrCreateUser(
-            'bnet',
+        const { userId } = await this.authRepository.findOrCreateUser({
+            provider: 'bnet',
             providerUserId,
-            providerUsername
-        );
+            username: providerUsername
+        });
 
         const wowAccount = await this.wowAccountService.getWoWAccount();
         const accountCharacters = wowAccount.wow_accounts.reduce((acc, val) => acc.concat(val.characters), [] as WoWCharacter[]);
@@ -90,23 +90,23 @@ export class AuthenticateWithBattleNetUseCase {
             characters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, wowAccount.id, 'bnet_oauth'))
         );
 
-        await this.authRepository.storeOauthToken(
+        await this.authRepository.storeOauthToken({
             userId,
-            'bnet',
+            provider: 'bnet',
             providerUserId,
             providerUsername,
-            bnetToken,
-            null, // Battle.net does not provide a refresh token in this flow
-            expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000) // Default to 1 hour if not provided
-        );
+            accessToken: bnetToken,
+            refreshToken: null, // Battle.net does not provide a refresh token in this flow
+            expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000) // Default to 1 hour if not provided
+        });
 
-        const roles = [] as string[]; //await this.roleRepository.findByMemberId(Number(userId)); // TODO: userId is not implmented should be by userId
+        const roles = await this.roleRepository.findByMemberId(userId); // TODO: userId is not implmented should be by userId
         const permissions = await this.permissionsRepository.findByRoles(roles);
-        const familyId = await this.authRepository.createTokenFamily(
+        const familyId = await this.authRepository.createTokenFamily({
             userId,
-            'bnet',
+            provider: 'bnet',
             ipAddress
-        );
+        });
         const tokenPair = this.tokenService.generateTokenPair({
             userId: userId,
             roles,
@@ -115,15 +115,16 @@ export class AuthenticateWithBattleNetUseCase {
             familyId,
         });
 
-        await this.authRepository.storeRefreshToken(
+        await this.authRepository.storeRefreshToken({
             userId,
-            tokenPair.refreshTokenJti,
+            tokenJti: tokenPair.refreshTokenJti,
             familyId,
-            'bnet',
-            new Date(tokenPair.refreshTokenExpiry * 1000),
+            provider: 'bnet',
+            expiresAt: new Date(tokenPair.refreshTokenExpiry * 1000),
             ipAddress,
             userAgent
-        );
+        });
+        console.log(tokenPair);
         this.logger.info(`User ${userId} authenticated successfully with Battle.net. Issued new token pair.`);
         return {
             refreshToken: tokenPair.refreshToken

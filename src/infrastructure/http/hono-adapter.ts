@@ -1,17 +1,26 @@
 import { Context } from "hono";
-import { z } from "zod";
+import { ZodTypeAny } from "zod/v3";
 import { requestContext } from "../logging/request-context";
 import { createLogger } from "../logging/logger";
 import { ResponseMapper } from "../../utils/map-error";
 import { ContentfulStatusCode } from "hono/utils/http-status";
+import { ValidationChainBuilder } from "./validators/validation-chain-builder";
 
-export interface RouteConfig<TInput> {
+export interface RouteConfig<TInput, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown> {
     functionName: string;
-    inputSchema?: z.ZodSchema<TInput>;
+    inputSchema?: ZodTypeAny;
+    querySchema?: ZodTypeAny;
+    paramsSchema?: ZodTypeAny;
+    headersSchema?: ZodTypeAny;
+    cookiesSchema?: ZodTypeAny;
 }
 
-export interface RouteContext<TInput> {
+export interface RouteContext<TInput, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown> {
     input: TInput;
+    query: TQuery;
+    params: TParams;
+    headers: THeaders;
+    cookies: TCookies;
     logger: ReturnType<typeof createLogger>;
     requestId: string;
     c: Context;
@@ -20,13 +29,9 @@ export interface RouteContext<TInput> {
     userAgent: string | null;
 }
 
-/**
- * Adapter that wraps use case handlers for Hono routes
- * Maintains clean architecture by providing a consistent context interface
- */
-export function createRoute<TInput = unknown, TOutput = unknown>(
-    config: RouteConfig<TInput>,
-    handler: (ctx: RouteContext<TInput>) => Promise<TOutput>
+export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown>(
+    config: RouteConfig<TInput, TQuery, TParams, THeaders, TCookies>,
+    handler: (ctx: RouteContext<TInput, TQuery, TParams, THeaders, TCookies>) => Promise<TOutput>
 ) {
     return async (c: Context) => {
         const requestId = c.req.header("X-Request-ID") || crypto.randomUUID();
@@ -39,9 +44,9 @@ export function createRoute<TInput = unknown, TOutput = unknown>(
             // In production: CF-Connecting-IP is set by Cloudflare
             // In local dev: defaults to localhost
             const ipAddress = c.req.header("CF-Connecting-IP") ||
-                             c.req.header("X-Forwarded-For")?.split(',')[0].trim() ||
-                             c.req.header("X-Real-IP") ||
-                             "127.0.0.1"; // localhost for dev
+                c.req.header("X-Forwarded-For")?.split(',')[0].trim() ||
+                c.req.header("X-Real-IP") ||
+                "127.0.0.1"; // localhost for dev
 
             // Get user agent
             const userAgent = c.req.header("User-Agent") || null;
@@ -54,61 +59,52 @@ export function createRoute<TInput = unknown, TOutput = unknown>(
                     userAgent,
                 });
 
-                // Parse and validate input
-                let input: TInput;
+                // Build validation chain
+                const validationChain = ValidationChainBuilder.build({
+                    inputSchema: config.inputSchema,
+                    querySchema: config.querySchema,
+                    paramsSchema: config.paramsSchema,
+                    headersSchema: config.headersSchema,
+                    cookiesSchema: config.cookiesSchema,
+                });
 
-                if (c.req.method === "GET" || c.req.method === "DELETE") {
-                    // For GET/DELETE, use query params or empty object
-                    input = {} as TInput;
-                } else if (config.inputSchema) {
-                    // Validate body with schema
-                    let body;
-                    try {
-                        body = await c.req.json();
-                    } catch (jsonError) {
-                        logger.error("Failed to parse JSON body", jsonError);
-                        c.header("X-Request-ID", requestId);
-                        return c.json(
-                            {
-                                error: "Bad Request",
-                                message: "Invalid JSON in request body",
-                                request_id: requestId,
-                            },
-                            400
-                        );
-                    }
+                // Execute validation chain
+                const validatedData = {} as {
+                    input?: TInput;
+                    query?: TQuery;
+                    params?: TParams;
+                    headers?: THeaders;
+                    cookies?: TCookies;
+                }
 
-                    const parsed = config.inputSchema.safeParse(body);
+                const validationContext = {
+                    c,
+                    logger,
+                    requestId,
+                    validatedData,
+                };
 
-                    if (!parsed.success) {
-                        console.log(parsed.error);
-                        logger.error("Request validation failed", {
-                            errors: parsed.error.issues.map(issue => issue.message).join("; "),
-                        });
+                const validationResult = await validationChain.validate(validationContext);
 
-                        c.header("X-Request-ID", requestId);
-                        return c.json(
-                            {
-                                error: true,
-                                message: "Invalid request body",
-                                request_id: requestId,
-                            },
-                            400
-                        );
-                    }
-
-                    input = parsed.data;
-                } else {
-                    try {
-                        input = await c.req.json();
-                    } catch {
-                        input = {} as TInput;
-                    }
+                if (!validationResult.success) {
+                    c.header("X-Request-ID", requestId);
+                    return c.json(
+                        {
+                            error: true,
+                            message: validationResult.error!.message,
+                            request_id: requestId,
+                        },
+                        validationResult.error!.statusCode as ContentfulStatusCode
+                    );
                 }
 
                 // Execute handler with clean architecture context
                 const result = await handler({
-                    input,
+                    input: validationContext.validatedData.input as TInput,
+                    query: validationContext.validatedData.query as TQuery,
+                    params: validationContext.validatedData.params as TParams,
+                    headers: validationContext.validatedData.headers as THeaders,
+                    cookies: validationContext.validatedData.cookies as TCookies,
                     logger,
                     requestId,
                     c,

@@ -1,3 +1,3 @@
 export interface IRoleRepository {
-	findByMemberId(memberId: number): Promise<string[]>;
+	findByMemberId(memberId: string): Promise<string[]>;
 }

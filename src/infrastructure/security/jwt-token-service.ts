@@ -1,9 +1,9 @@
 import { sign, verify } from 'jsonwebtoken';
-import { AccessTokenPayload } from '@dto/access-token-payload.ts';
-import { RefreshTokenPayload } from '@dto/refresh-token-payload.ts';
+import { AccessTokenPayload } from '@dto/auth/access-token-payload';
+import { RefreshTokenPayload } from '@dto/auth/refresh-token-payload';
 import { ITokenService } from 'src/domain/services/i-token-service';
-import { TokenPair } from '@dto/token-pair';
-import { GenerateTokenPairInput } from '@dto/generate-token-pair-input';
+import { TokenPair } from '@dto/auth/token-pair';
+import { GenerateTokenPairInput } from '@dto/auth/generate-token-pair-input';
 
 export class JWTTokenService implements ITokenService {
     private accessSecret: string;

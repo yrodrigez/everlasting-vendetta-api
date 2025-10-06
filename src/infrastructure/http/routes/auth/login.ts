@@ -4,7 +4,7 @@ import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 import WowAccountService from "@external/wow-account-service";
 import { WowCharacterService } from "@external/wow-character-service";
 import { createRoute } from "@http/hono-adapter";
-import { loginSchema } from "@http/validators/auth-validators";
+import { loginSchema, LoginInput } from "@http/validators/schemas/auth-schema";
 import { AuthenticateWithBattleNetUseCase } from "@use-cases/auth-with-battlenet-usecase";
 import { Hono } from "hono";
 import { getEnvironment } from "src/infrastructure/environment";
@@ -16,7 +16,7 @@ import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 
 const loginRoute = new Hono();
 
-loginRoute.post(createRoute(
+loginRoute.post(createRoute<LoginInput>(
     {
         functionName: "auth-login",
         inputSchema: loginSchema,

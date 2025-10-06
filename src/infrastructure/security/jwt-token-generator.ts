@@ -3,8 +3,8 @@ import { TokenClaims } from "@entities/auth/token-claims";
 import { IJwtTokenGenerator } from "../../domain/repositories/i-jwt-token-generation";
 import { getEnvironment } from "../environment";
 import { createLogger } from "../logging/index";
-import { RefreshTokenPayload } from "@dto/refresh-token-payload";
-import { AccessTokenPayload } from "@dto/access-token-payload";
+import { RefreshTokenPayload } from "@dto/auth/refresh-token-payload";
+import { AccessTokenPayload } from "@dto/auth/access-token-payload";
 
 export class JwtTokenGenerator implements IJwtTokenGenerator {
     private logger = createLogger("JwtTokenGenerator");

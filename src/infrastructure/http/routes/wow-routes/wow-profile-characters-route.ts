@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { createRoute } from "@http/hono-adapter";
-import { wowProfileCharactersSchema } from "@http/validators/wow-routes-validators";
+import { wowProfileCharactersSchema, WowProfileCharactersInput } from "@http/validators/schemas/wow-routes-schemas";
 import WowAccountService from "@external/wow-account-service";
 import { WowCharacterService } from "@external/wow-character-service";
 import { GetRealmCharactersUseCase } from "@use-cases/get-realm-characters-usecase";
@@ -11,16 +11,19 @@ import { WowAccountRepository } from "src/infrastructure/repositories/wow-accoun
 import { MemberRepository } from "src/infrastructure/repositories/member-repository";
 import { SaveWowAccountUseCase } from "@use-cases/save-wow-account-usecase";
 import { SyncWowAccountCharactersUsecase } from "@use-cases/sync-wow-account-characters-usecase";
+import { GetUserOauthToken } from "@use-cases/get-user-oauth-token";
+import { AuthRepository } from "src/infrastructure/repositories/auth-repository";
+import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
+import { getEnvironment } from "src/infrastructure/environment";
 
 const wowRoutes = new Hono();
 
-wowRoutes.post(createRoute(
+wowRoutes.post(createRoute<WowProfileCharactersInput>(
     {
         functionName: "profile-characters",
         inputSchema: wowProfileCharactersSchema,
     },
-    async ({ input: { access_token: bnetToken, realmSlug }, logger }) => {
-        // Simple dependency composition - initialize only what we need
+    async ({ input: { access_token, realmSlug } }) => {
         const databaseClient = DatabaseClientFactory.getInstance();
         const blizzardOauthService = new BlizzardOauthService();
         const wowAccountRepository = new WowAccountRepository(databaseClient);
@@ -34,6 +37,18 @@ wowRoutes.post(createRoute(
             memberRepository
         );
 
+        const authRepository = new AuthRepository(databaseClient);
+        const { jwtKid, jwtSecret } = getEnvironment()
+        const tokenService = new JWTTokenService(jwtSecret, jwtSecret, jwtKid);
+        const getUserToken = new GetUserOauthToken(
+            authRepository,
+            tokenService
+        );
+
+        const bnetToken = await getUserToken.execute(access_token);
+        if (!bnetToken) {
+            throw new Error("Invalid or expired access token");
+        }
         // Create token-specific services
         const wowAccountService = new WowAccountService(bnetToken);
         const wowCharacterService = new WowCharacterService(bnetToken);
