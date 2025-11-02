@@ -91,7 +91,6 @@ class Logger {
 
 	private constructor(functionName: string = "unknown") {
 		this.functionName = functionName;
-		const env = getEnvironment();
 		this.logLevel = 'INFO' as LogLevel;
 	}
 

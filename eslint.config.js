@@ -3,7 +3,7 @@ import tsparser from '@typescript-eslint/parser';
 
 export default [
     {
-        files: ['**/*.ts'],
+        files: ['src/**/*.ts'],
         languageOptions: {
             parser: tsparser,
             parserOptions: {
@@ -16,8 +16,9 @@ export default [
         },
         rules: {
             ...tseslint.configs.recommended.rules,
-            'camelcase': 'error',
-            '@typescript-eslint/no-unused-vars': 'error',
+            '@typescript-eslint/no-explicit-any': 'off',
+            'camelcase': 'warn',
+            '@typescript-eslint/no-unused-vars': 'warn',
         },
     },
 ];

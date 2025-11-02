@@ -7,7 +7,7 @@ export class BodyValidator extends BaseValidator {
     }
 
     protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
-        const { c, logger, requestId } = context;
+        const { c, logger } = context;
 
         // Skip body validation for GET/DELETE
         if (c.req.method === "GET" || c.req.method === "DELETE") {
@@ -187,8 +187,8 @@ export class CookiesValidator extends BaseValidator {
                 }
                 return acc;
             }, {} as Record<string, string>) || {};
-            
-            console.log("All Cookies:", allCookies);
+
+        console.log("All Cookies:", allCookies);
 
         const cookiesParsed = this.schema.safeParse(allCookies);
 

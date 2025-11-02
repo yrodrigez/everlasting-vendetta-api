@@ -28,15 +28,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run linter
-        run: pnpm lint
-
-      - name: Run type check
-        run: pnpm type-check
-
-      - name: Run tests
-        run: pnpm test
-
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:

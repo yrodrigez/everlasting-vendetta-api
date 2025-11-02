@@ -1,11 +1,11 @@
-import { ZodSchema, ZodTypeAny } from "zod/v3";
+import { ZodTypeAny } from "zod/v3";
 import { Validator } from "./validator-chain";
 import {
     BodyValidator,
-    QueryValidator,
-    ParamsValidator,
-    HeadersValidator,
     CookiesValidator,
+    HeadersValidator,
+    ParamsValidator,
+    QueryValidator,
 } from "./validators";
 
 export interface ValidationSchemas {
