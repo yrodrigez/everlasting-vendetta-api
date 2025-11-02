@@ -7,4 +7,8 @@ export interface IMemberRepository {
     update(member: Member): Promise<Member>;
     upsert(member: Member): Promise<Member>;
     upsertMany(members: Member[]): Promise<Member[]>;
+    findByRealmSlugAndName(
+        realmSlug: string,
+        characterName: string,
+    ): Promise<Member | null>;
 }

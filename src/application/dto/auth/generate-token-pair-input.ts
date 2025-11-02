@@ -3,5 +3,11 @@ export interface GenerateTokenPairInput {
   roles: string[];
   permissions: string[];
   provider: 'bnet' | 'discord';
-  familyId: string; 
+  familyId: string;
+  isAdmin: boolean;
+  isTemporal: boolean;
+  email?: string;
+  bnet_id?: string;
+  discord_id?: string;
+  isBanned: boolean;
 }

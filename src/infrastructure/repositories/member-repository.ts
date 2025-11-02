@@ -48,6 +48,34 @@ export class MemberRepository implements IMemberRepository {
         return data.map((row) => Member.fromDB(row));
     }
 
+    async findByRealmSlugAndName(
+        realmSlug: string,
+        characterName: string,
+    ): Promise<Member | null> {
+        const normalizedRealm = realmSlug.trim().toLowerCase();
+        const normalizedName = characterName.trim();
+
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("*")
+            .eq("character->realm->>slug", normalizedRealm)
+            .ilike("character->>name", normalizedName)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error fetching member by realm and name: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return Member.fromDB(data);
+    }
+
     async save(member: Member): Promise<Member> {
         const memberData = {
             character: member.character,

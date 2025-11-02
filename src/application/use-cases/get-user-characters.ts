@@ -4,38 +4,20 @@ import { IWowCharacterService } from "@repositories/i-wow-character-service";
 import { Member } from "@entities/member";
 import { WoWCharacter } from "@entities/wow/wow-character";
 import { createLogger } from "../../infrastructure/logging/index.ts";
-import { AuthError } from "@errors/auth-error";
 import { UserRepositoryError } from "@errors/user-repository-error";
-import { BlizzardApiError } from "@errors/blizzard-api-error";
 
 export class GetUserCharacters {
     private logger = createLogger("GetUserCharacters");
 
     constructor(
-        private tokenService: ITokenService,
         private usersRepository: IUserRepository,
         private charactersService: IWowCharacterService,
     ) { }
 
-    async execute({ accessToken, realmSlug }: {
-        accessToken: string;
+    async execute({ userId, realmSlug }: {
+        userId: string;
         realmSlug?: string;
     }): Promise<WoWCharacter[]> {
-        let userId: string;
-
-        // Verify the access token and extract user ID
-        try {
-            const tokenPayload = this.tokenService.verifyAccessToken(accessToken);
-            userId = tokenPayload.sub; // Subject contains the user ID
-            this.logger.info(`Fetching characters for user ${userId}${realmSlug ? ` on realm ${realmSlug}` : ''}`);
-        } catch (error) {
-            this.logger.error('Invalid or expired access token', error);
-            throw new AuthError(
-                'Invalid or expired access token',
-                'INVALID_TOKEN',
-                401
-            );
-        }
 
         // Get the user's characters from the database
         let storedCharacters: Member[];
@@ -65,7 +47,7 @@ export class GetUserCharacters {
                 storedCharacters.map(async (member) => {
                     try {
                         const char = member.character;
-                        
+
                         // Skip low-level characters
                         if (char.level < 10) {
                             this.logger.debug(`Skipping low-level character ${char.name} (level ${char.level})`);
@@ -133,7 +115,7 @@ export class GetUserCharacters {
         }
 
         const validCharacters = updatedCharacters.filter(Boolean) as WoWCharacter[];
-        
+
         this.logger.info(`Returning ${validCharacters.length} updated character(s) for user ${userId}`);
 
         return validCharacters;

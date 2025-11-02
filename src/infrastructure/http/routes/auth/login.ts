@@ -12,6 +12,7 @@ import { AuthRepository } from "src/infrastructure/repositories/auth-repository"
 import { MemberRepository } from "src/infrastructure/repositories/member-repository";
 import { PermissionRepository } from "src/infrastructure/repositories/permission-repository";
 import { RoleRepository } from "src/infrastructure/repositories/role-repository";
+import { BannedRepository } from "src/infrastructure/repositories/banned-repository";
 import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 
 const loginRoute = new Hono();
@@ -29,8 +30,9 @@ loginRoute.post(createRoute<LoginInput>(
         const memberRepository = new MemberRepository(databaseClient);
         const roleRepository = new RoleRepository(databaseClient);
         const permissionsRepository = new PermissionRepository(databaseClient);
-        const { jwtSecret, jwtKid } = getEnvironment();
-        const tokenService = new JWTTokenService(jwtSecret, jwtSecret, jwtKid); // TODO: separate secrets
+        const { jwtSecret, jwtKid, jwtRefreshSecret } = getEnvironment();
+        const tokenService = new JWTTokenService(jwtSecret, jwtRefreshSecret, jwtKid);
+        const bansRepository = new BannedRepository(databaseClient);
 
         if (provider === 'bnet') {
             const wowAccountService = new WowAccountService(access_token);
@@ -43,7 +45,8 @@ loginRoute.post(createRoute<LoginInput>(
                 memberRepository,
                 roleRepository,
                 permissionsRepository,
-                tokenService
+                tokenService,
+                bansRepository,
             )
             return await battlenetAuthUseCase.execute({
                 bnetToken: access_token,

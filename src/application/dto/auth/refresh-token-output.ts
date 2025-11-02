@@ -1,6 +1,6 @@
 import { TokenPair } from "./token-pair";
 
 export type RefreshTokenOutput = {
-    shouldRefreshProviderToken: boolean;
+    shouldRefreshProviderToken?: boolean;
     provider: string;
 } & TokenPair;

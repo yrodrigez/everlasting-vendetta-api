@@ -74,7 +74,7 @@ export class SyncWowAccountCharactersUsecase {
                 wowAccountId,
                 memberCharacter,
                 finalSource,
-                existingMember?.createdAt || new Date(),
+                existingMember?.created_at || new Date(),
                 new Date(),
             );
 

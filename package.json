@@ -6,10 +6,14 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:secrets": "powershell -ExecutionPolicy Bypass -File scripts/upload-secrets.ps1",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -20,19 +24,25 @@
     "@types/jsonwebtoken": "^9.0.10",
     "async_hooks": "^1.0.0",
     "dotenv": "^17.2.3",
+    "happy-dom": "^20.0.5",
     "hono": "^4.9.9",
+    "jest": "^30.2.0",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
+    "p-limit": "^7.1.1",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251004.0",
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.6.2",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "wrangler": "^4.42.0"

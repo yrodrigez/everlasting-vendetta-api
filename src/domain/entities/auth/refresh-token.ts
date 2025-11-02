@@ -17,6 +17,7 @@ export class RefreshToken {
     readonly deviceFingerprint: string | null;
     readonly isRotated: boolean;
     readonly rotatedTo: string | null;
+    readonly previousValidUntil: Date | null = null;
     constructor({
         id = crypto.randomUUID(),
         userId,
@@ -33,7 +34,8 @@ export class RefreshToken {
         userAgent = null,
         deviceFingerprint = null,
         isRotated = false,
-        rotatedTo = null
+        rotatedTo = null,
+        previousValidUntil = null
     }: {
         id?: string;
         userId: string;
@@ -51,6 +53,7 @@ export class RefreshToken {
         deviceFingerprint?: string | null;
         isRotated?: boolean;
         rotatedTo?: string | null;
+        previousValidUntil?: Date | null;
     }) {
         this.id = id;
         this.userId = userId;
@@ -68,6 +71,7 @@ export class RefreshToken {
         this.deviceFingerprint = deviceFingerprint;
         this.isRotated = isRotated;
         this.rotatedTo = rotatedTo;
+        this.previousValidUntil = previousValidUntil;
     }
 
     static fromDatabase(row: {
@@ -87,6 +91,7 @@ export class RefreshToken {
         device_fingerprint: string | null;
         is_rotated: boolean;
         rotated_to_jti: string | null;
+        previous_valid_until: string | null; // ISO date string or null
     }): RefreshToken {
         return new RefreshToken({
             id: row.id,
@@ -105,6 +110,7 @@ export class RefreshToken {
             deviceFingerprint: row.device_fingerprint,
             isRotated: row.is_rotated,
             rotatedTo: row.rotated_to_jti,
+            previousValidUntil: row.previous_valid_until ? new Date(row.previous_valid_until) : null,
         });
     }
 

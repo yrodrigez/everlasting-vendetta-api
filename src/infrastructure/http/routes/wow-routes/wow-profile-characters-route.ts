@@ -38,8 +38,8 @@ wowRoutes.post(createRoute<WowProfileCharactersInput>(
         );
 
         const authRepository = new AuthRepository(databaseClient);
-        const { jwtKid, jwtSecret } = getEnvironment()
-        const tokenService = new JWTTokenService(jwtSecret, jwtSecret, jwtKid);
+        const { jwtKid, jwtSecret, jwtRefreshSecret } = getEnvironment()
+        const tokenService = new JWTTokenService(jwtSecret, jwtRefreshSecret, jwtKid);
         const getUserToken = new GetUserOauthToken(
             authRepository,
             tokenService

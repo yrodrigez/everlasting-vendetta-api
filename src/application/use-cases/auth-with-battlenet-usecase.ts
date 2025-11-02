@@ -9,6 +9,7 @@ import { IPermissionRepository } from "@repositories/i-permission-repository";
 import { IRoleRepository } from "@repositories/i-role-repository";
 import { IWowAccountService } from "@repositories/i-wow-account-service";
 import { IWowCharacterService } from "@repositories/i-wow-character-service";
+import { IBannedRepository } from "@repositories/i-banned-repository";
 import { IBlizzardOAuthService } from "src/domain/services/i-blizzard-oauth-service";
 import { ITokenService } from "src/domain/services/i-token-service";
 import { createLogger } from "src/infrastructure/logging";
@@ -24,6 +25,7 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly roleRepository: IRoleRepository,
         private readonly permissionsRepository: IPermissionRepository,
         private readonly tokenService: ITokenService,
+        private readonly bansRepository: IBannedRepository,
     ) { }
 
     async execute({
@@ -92,32 +94,41 @@ export class AuthenticateWithBattleNetUseCase {
 
         const roles = await this.roleRepository.findByMemberId(userId); // TODO: userId is not implmented should be by userId
         const permissions = await this.permissionsRepository.findByRoles(roles);
+        const isBanned = await this.bansRepository.isUserBanned(userId);
+
         const familyId = await this.authRepository.createTokenFamily({
             userId,
             provider: 'bnet',
             ipAddress
         });
+
         const tokenPair = this.tokenService.generateTokenPair({
             userId: userId,
             roles,
             permissions,
             provider: 'bnet',
             familyId,
+            isAdmin: roles.includes('ADMIN'),
+            isTemporal: false,
+            isBanned: isBanned
         });
 
         await this.authRepository.storeRefreshToken({
             userId,
-            tokenJti: tokenPair.refreshTokenJti,
+            tokenJti: tokenPair.refreshTokenJti!,
             familyId,
             provider: 'bnet',
-            expiresAt: new Date(tokenPair.refreshTokenExpiry * 1000),
+            expiresAt: new Date(tokenPair.refreshTokenExpiry! * 1000),
             ipAddress,
             userAgent
         });
         console.log(tokenPair);
         this.logger.info(`User ${userId} authenticated successfully with Battle.net. Issued new token pair.`);
         return {
-            refreshToken: tokenPair.refreshToken
+            refreshToken: tokenPair.refreshToken,
+            accessToken: tokenPair.accessToken,
+            refreshTokenExpiresAt: tokenPair.refreshTokenExpiry,
+            accessTokenExpiresAt: tokenPair.accessTokenExpiry
         };
     }
 }

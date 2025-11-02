@@ -33,4 +33,12 @@ export interface IAuthRepository {
     revokeFamilyTokens(dto: RevokeFamilyTokensDTO): Promise<void>;
 
     createTokenFamily(dto: CreateTokenFamilyDTO): Promise<string>;
+
+    getUserSessions(userId: string): Promise<RefreshToken[]>;
+
+    revokeAllUserTokens(userId: string, reason: string): Promise<void>;
+
+    findTokenByJti(tokenJti: string): Promise<RefreshToken | null>;
+
+    getActiveFamilyToken(familyId: string, provider: OAuthProvider): Promise<RefreshToken | null>;
 }

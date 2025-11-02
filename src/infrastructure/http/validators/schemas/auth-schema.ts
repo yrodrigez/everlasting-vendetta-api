@@ -13,3 +13,9 @@ export const refreshSchema = z.object({
 });
 
 export type RefreshInput = z.infer<typeof refreshSchema>;
+
+export const revokeSchema = z.object({
+    token_jti: z.string().uuid("Token JTI must be a valid UUID"),
+});
+
+export type RevokeInput = z.infer<typeof revokeSchema>;

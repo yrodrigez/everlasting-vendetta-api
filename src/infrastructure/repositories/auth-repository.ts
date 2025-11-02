@@ -23,6 +23,30 @@ export class AuthRepository implements IAuthRepository {
         private readonly database: DatabaseClient
     ) { }
 
+    async findTokenByJti(tokenJti: string): Promise<RefreshToken | null> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .select('*')
+            .eq('token_jti', tokenJti)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new AuthError(
+                `Database error while retrieving rotated token: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return RefreshToken.fromDatabase(data);
+    }
+
     async getOauthProvider(userId: string, provider: OAuthProvider): Promise<OauthProviderDTO | null> {
         const { data, error } = await this.database
             .schema(this.authSchema)
@@ -52,90 +76,92 @@ export class AuthRepository implements IAuthRepository {
         }
     }
 
-    async rotateToken(dto: RotateTokenDTO): Promise < void> {
-            const { oldJti, newJti, userId, familyId, provider, expiresAt, ipAddress, userAgent } = dto;
-            const { error } = await this.database.schema(this.authSchema).rpc(
-                'rotate_refresh_token', {
-                p_old_jti: oldJti,
-                p_new_jti: newJti,
-                p_user_id: userId,
-                p_family_id: familyId,
-                p_provider: provider,
-                p_expires_at: expiresAt.toISOString(),
-                p_ip_address: ipAddress || null,
-                p_user_agent: userAgent || null
+    async rotateToken(dto: RotateTokenDTO): Promise<void> {
+        const { oldJti, newJti, userId, familyId, provider, expiresAt, ipAddress, userAgent } = dto;
+        const { error } = await this.database.schema(this.authSchema).rpc(
+            'rotate_refresh_token', {
+            p_old_jti: oldJti,
+            p_new_jti: newJti,
+            p_user_id: userId,
+            p_family_id: familyId,
+            p_provider: provider,
+            p_expires_at: expiresAt.toISOString(),
+            p_ip_address: ipAddress || null,
+            p_user_agent: userAgent || null,
+            p_grace_ms: 60 * 1000 // 1 minute grace period
+        });
+
+        if (error) {
+            throw new AuthError(
+                `Database error while rotating refresh token: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+    }
+
+    async createTokenFamily(dto: CreateTokenFamilyDTO): Promise<string> {
+        const { userId, provider, ipAddress } = dto;
+        const familyId = crypto.randomUUID();
+
+        const { error } = await this.database
+            .schema(this.authSchema)
+            .from('token_families')
+            .insert({
+                id: familyId,
+                user_id: userId,
+                provider: provider,
+                original_ip_address: ipAddress,
+                created_at: new Date().toISOString()
             });
 
-            if(error) {
-                throw new AuthError(
-                    `Database error while rotating refresh token: ${error.message || 'Unknown error'}`,
-                    'DB_ERROR',
-                    500
-                );
-            }
+        if (error) {
+            throw new AuthError(
+                `Failed to create token family: ${error.message}`,
+                'DB_ERROR',
+                500
+            );
         }
-    async createTokenFamily(dto: CreateTokenFamilyDTO): Promise < string > {
-            const { userId, provider, ipAddress } = dto;
-            const familyId = crypto.randomUUID();
-
-            const { error } = await this.database
-                .schema(this.authSchema)
-                .from('token_families')
-                .insert({
-                    id: familyId,
-                    user_id: userId,
-                    provider: provider,
-                    original_ip_address: ipAddress,
-                    created_at: new Date().toISOString()
-                });
-
-            if(error) {
-                throw new AuthError(
-                    `Failed to create token family: ${error.message}`,
-                    'DB_ERROR',
-                    500
-                );
-            }
 
         return familyId;
-        }
-    
-    async storeRefreshToken(dto: StoreRefreshTokenDTO): Promise < void> {
-            const { userId, tokenJti, familyId, provider, expiresAt, ipAddress, userAgent } = dto;
-            const { error } = await this.database
-                .schema(this.authSchema)
-                .from('refresh_tokens')
-                .insert({
-                    user_id: userId,
-                    token_jti: tokenJti,
-                    family_id: familyId,
-                    provider: provider,
-                    expires_at: expiresAt.toISOString(),
-                    ip_address: ipAddress,
-                    user_agent: userAgent
-                });
+    }
 
-            if(error) {
-                throw new AuthError(
-                    `Database error while storing refresh token: ${error.message || 'Unknown error'}`,
-                    'DB_ERROR',
-                    500
-                );
-            }
+    async storeRefreshToken(dto: StoreRefreshTokenDTO): Promise<void> {
+        const { userId, tokenJti, familyId, provider, expiresAt, ipAddress, userAgent } = dto;
+        const { error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .insert({
+                user_id: userId,
+                token_jti: tokenJti,
+                family_id: familyId,
+                provider: provider,
+                expires_at: expiresAt.toISOString(),
+                ip_address: ipAddress,
+                user_agent: userAgent
+            });
 
-
+        if (error) {
+            throw new AuthError(
+                `Database error while storing refresh token: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
         }
 
-    async getRefreshToken(tokenJti: string): Promise < RefreshToken | null > {
-            const { data, error } = await this.database
-                .schema(this.authSchema)
-                .from('refresh_tokens')
-                .select('*')
-                .eq('token_jti', tokenJti)
-                .limit(1)
-                .maybeSingle();
 
-            if(error || !data) {
+    }
+
+    async getRefreshToken(tokenJti: string): Promise<RefreshToken | null> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .select('*')
+            .eq('token_jti', tokenJti)
+            .limit(1)
+            .maybeSingle();
+
+        if (error || !data) {
             throw new AuthError(
                 `Database error while retrieving refresh token: ${!data ? 'Token not found' : (error?.message || 'Unknown error')}`,
                 'DB_ERROR',
@@ -171,7 +197,7 @@ export class AuthRepository implements IAuthRepository {
         const { error } = await this.database
             .schema(this.authSchema)
             .from('refresh_tokens')
-            .update({ revoked: true, revoked_reason: reason, revoked_at: new Date().toISOString() })
+            .update({ revoked_reason: reason, revoked_at: new Date().toISOString() })
             .eq('token_jti', tokenJti);
 
         if (error) {
@@ -205,7 +231,7 @@ export class AuthRepository implements IAuthRepository {
     }
 
     async findOrCreateUser(dto: FindOrCreateUserDTO): Promise<FindOrCreateUserResponseDTO> {
-        const { provider, providerUserId, username } = dto;
+        const { username } = dto;
         const { data, error } = await this.database
             .from('users')
             .select('user_id:id')
@@ -271,6 +297,81 @@ export class AuthRepository implements IAuthRepository {
                 500
             );
         }
+    }
+
+    async getUserSessions(userId: string): Promise<RefreshToken[]> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .select('*')
+            .eq('user_id', userId)
+            .is('revoked_at', null)
+            .is('revoked_reason', null)
+            .eq('is_rotated', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            throw new AuthError(
+                `Database error while retrieving user sessions: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        return (data || []).map(row => RefreshToken.fromDatabase(row));
+    }
+
+    async revokeAllUserTokens(userId: string, reason: string): Promise<void> {
+        const { error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .update({
+                revoked: true,
+                revoked_reason: reason,
+                revoked_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .is('revoked_at', null)
+            .is('revoked_reason', null);
+
+        if (error) {
+            throw new AuthError(
+                `Database error while revoking all user tokens: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+    }
+
+    async getActiveFamilyToken(familyId: string, provider: OAuthProvider): Promise<RefreshToken | null> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('refresh_tokens')
+            .select('*')
+            .eq('family_id', familyId)
+            .eq('provider', provider)
+            .is('revoked_at', null)
+            .is('revoked_reason', null)
+            .eq('is_rotated', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new AuthError(
+                `Database error while retrieving active family token: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return RefreshToken.fromDatabase(data);
     }
 
 }

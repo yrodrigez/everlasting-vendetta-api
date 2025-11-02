@@ -24,6 +24,7 @@ export class BlizzardTokenRepository implements ITokenRepository {
             .from(TOKEN_DATABASE_TABLE)
             .select("*")
             .order("created_at", { ascending: false })
+            .filter("expires_at", "gte", new Date().toISOString())
             .limit(1)
             .maybeSingle();
 
@@ -35,8 +36,9 @@ export class BlizzardTokenRepository implements ITokenRepository {
         }
 
         if (!data) {
-            this.logger.warn("No token found in database");
-            throw new TokenNotFoundError("No valid token found");
+            this.logger.info("No valid token found in database");
+            const token = await this.createNewToken();
+            return this.saveToken(token);
         }
 
         this.logger.debug("Successfully retrieved token from database");

@@ -2,7 +2,7 @@ import { DomainError } from "@errors/domain-error";
 
 export class ResponseMapper {
 
-    static success(data: object, requestId: string): Response {
+    static success(data: any, requestId: string): Response {
         return new Response(
             JSON.stringify({ ...data, request_id: requestId }),
             { status: 200, headers: { "Content-Type": "application/json", "X-Request-ID": requestId } },

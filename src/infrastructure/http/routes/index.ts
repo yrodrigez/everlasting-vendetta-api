@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import wowRoutes from "./wow-routes";
 import authRoutes from "./auth";
+import { gearscoreRoutes } from "./gearscore-route";
 
 const routes = new Hono();
 
@@ -15,5 +16,6 @@ routes.get("/health", (c) => {
 // Mount route modules
 routes.route("/wow", wowRoutes);
 routes.route("/auth", authRoutes);
+routes.route("/gearscore", gearscoreRoutes);
 
 export { routes };

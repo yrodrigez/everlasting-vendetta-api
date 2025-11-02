@@ -11,4 +11,25 @@ export interface ITokenService {
 
     verifyRefreshToken(token: string): RefreshTokenPayload;
 
+    verifyAnonToken(token: string): AccessTokenPayload;
+
+    generateAccessToken(payload: Partial<AccessTokenPayload>): { token: string; expiry: number; jti: string };
+
+    generateRefreshToken(payload: Partial<RefreshTokenPayload>): { token: string; expiry: number; jti: string };
+
+    signRefreshFromJti({
+        jti,
+        userId,
+        family_id,
+        provider,
+        exp,
+    }: {
+        jti: string;
+        userId: string;
+        family_id: string;
+        provider: 'bnet' | 'discord';
+        exp: number;
+    }): { token: string; expiry: number; jti: string };
+
+    decodeToken(token: string): AccessTokenPayload | RefreshTokenPayload;
 }
