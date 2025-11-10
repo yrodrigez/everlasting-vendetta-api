@@ -13,6 +13,7 @@ import { IBannedRepository } from "@repositories/i-banned-repository";
 import { IBlizzardOAuthService } from "src/domain/services/i-blizzard-oauth-service";
 import { ITokenService } from "src/domain/services/i-token-service";
 import { createLogger } from "src/infrastructure/logging";
+import { IWowAccountRepository } from "@repositories/i-wow-account-repository";
 
 export class AuthenticateWithBattleNetUseCase {
     private readonly logger = createLogger('AuthenticateWithBattleNetUseCase');
@@ -26,12 +27,12 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly permissionsRepository: IPermissionRepository,
         private readonly tokenService: ITokenService,
         private readonly bansRepository: IBannedRepository,
+        private readonly wowAccountRepository: IWowAccountRepository,
     ) { }
 
     async execute({
         bnetToken,
         expires_at,
-        provider,
         ipAddress,
         userAgent
     }: AuthenticateUserWithBattleNetInput): Promise<AuthenticateUserWithBattleNetOutput> {
@@ -45,6 +46,10 @@ export class AuthenticateWithBattleNetUseCase {
         }
 
         const { battletag, id } = await this.blizzardOAuthService.getUserInfo(bnetToken);
+        await this.wowAccountRepository.upsert({
+            id,
+            battletag
+        });
         const providerUserId = id.toString();
         const providerUsername = battletag;
         const { userId } = await this.authRepository.findOrCreateUser({
@@ -122,7 +127,7 @@ export class AuthenticateWithBattleNetUseCase {
             ipAddress,
             userAgent
         });
-        console.log(tokenPair);
+
         this.logger.info(`User ${userId} authenticated successfully with Battle.net. Issued new token pair.`);
         return {
             refreshToken: tokenPair.refreshToken,

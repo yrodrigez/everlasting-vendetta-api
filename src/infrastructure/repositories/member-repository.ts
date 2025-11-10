@@ -45,7 +45,7 @@ export class MemberRepository implements IMemberRepository {
             return [];
         }
 
-        return data.map((row) => Member.fromDB(row));
+        return data.map((row: object) => Member.fromDB(row));
     }
 
     async findByRealmSlugAndName(
