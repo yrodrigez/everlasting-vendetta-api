@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import wowRoutes from "./wow-routes";
 import authRoutes from "./auth";
 import { gearscoreRoutes } from "./gearscore-route";
+import realmsRoutes from "./realms";
+import characterRoutes from "./characters";
 
 const routes = new Hono();
 
@@ -17,5 +19,7 @@ routes.get("/health", (c) => {
 routes.route("/wow", wowRoutes);
 routes.route("/auth", authRoutes);
 routes.route("/gearscore", gearscoreRoutes);
+routes.route("/realms", realmsRoutes);
+routes.route("/auth/characters", characterRoutes);
 
 export { routes };

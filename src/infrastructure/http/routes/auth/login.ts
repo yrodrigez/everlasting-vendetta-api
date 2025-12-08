@@ -6,6 +6,7 @@ import { WowCharacterService } from "@external/wow-character-service";
 import { createRoute } from "@http/hono-adapter";
 import { loginSchema, LoginInput } from "@http/validators/schemas/auth-schema";
 import { AuthenticateWithBattleNetUseCase } from "@use-cases/auth-with-battlenet-usecase";
+import { AuthenticateWithDiscordUseCase } from "@use-cases/auth-with-discord-usecase";
 import { Hono } from "hono";
 import { getEnvironment } from "src/infrastructure/environment";
 import { AuthRepository } from "src/infrastructure/repositories/auth-repository";
@@ -55,6 +56,22 @@ loginRoute.post(createRoute<LoginInput>(
                 bnetToken: access_token,
                 expires_at,
                 provider,
+                ipAddress: ipAddress || undefined,
+                userAgent: userAgent || undefined
+            });
+        }
+
+        if (provider === 'discord') {
+            const discordAuthUseCase = new AuthenticateWithDiscordUseCase(
+                authRepository,
+                roleRepository,
+                permissionsRepository,
+                tokenService,
+                bansRepository,
+            );
+            return await discordAuthUseCase.execute({
+                discordToken: access_token,
+                expires_at,
                 ipAddress: ipAddress || undefined,
                 userAgent: userAgent || undefined
             });

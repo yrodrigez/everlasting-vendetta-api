@@ -1,4 +1,4 @@
-import { createApp } from "./infrastructure/http/app";
+import { createApp } from "./app";
 
 export default {
     async fetch(request: Request, env: any): Promise<Response> {

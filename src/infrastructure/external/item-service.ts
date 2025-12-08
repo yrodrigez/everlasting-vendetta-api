@@ -2,31 +2,14 @@ import type {
 	IItemService,
 	ItemDetails,
 } from "@repositories/gearscore/i-item-service.ts";
-import { BlizzardApiError } from "../../domain/errors/blizzard-api-error.ts";
-import type { DatabaseClient } from "../database/database-client-factory.ts";
 import { IBlizzardItemService } from "src/domain/services/i-blizzard-item-service.ts";
+import type { DatabaseClient } from "../database/database-client-factory.ts";
 import { BlizzardItemService } from "./blizzard-item-service.ts";
-
-
-const LOCALE = "en_US";
-const STATIC_NAMESPACE = "static-eu";
-
-// Known item levels for items that may not be available in the API
-const KNOWN_ITEM_LEVELS: Record<number, number> = {
-	215161: 45,
-	210781: 30,
-	211450: 33,
-	215111: 45,
-	999999: 0,
-	0: 0,
-	216494: 45,
-	213409: 45,
-	213350: 45,
-};
-
 export class ItemService implements IItemService {
-	private readonly blizzardItemService: IBlizzardItemService = new BlizzardItemService();
-	constructor(private readonly supabase: DatabaseClient) { }
+	constructor(
+		private readonly supabase: DatabaseClient,
+		private readonly blizzardItemService: IBlizzardItemService = new BlizzardItemService(),
+	) { }
 
 	async getItem(
 		itemId: number,

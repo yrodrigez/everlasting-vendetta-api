@@ -133,6 +133,7 @@ export class GetWowCharacterUseCase {
                 id: 0,
                 name: char.playable_class?.name ?? "",
             },
+            char.faction,
             char.guild,
             char.avatar,
         );
@@ -159,6 +160,7 @@ export class GetWowCharacterUseCase {
             avatar: character.avatar ?? "/avatar-anon.png",
             last_login_timestamp: character.last_login_timestamp,
             selectedRole,
+            faction: character.faction,
         };
     }
 

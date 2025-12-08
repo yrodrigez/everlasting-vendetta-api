@@ -28,7 +28,7 @@ revokeRoute.post(
             const useCase = new RevokeTokenUseCase(authRepository);
 
             const result = await useCase.execute({
-                userId: user.sub,
+                userId: user.userId,
                 tokenJti: input.token_jti,
                 reason: 'manual'
             });

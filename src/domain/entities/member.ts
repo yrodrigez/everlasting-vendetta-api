@@ -21,6 +21,7 @@ export type MemberCharacter = {
     avatar: string;
     "last_login_timestamp": number;
     selectedRole?: string;
+    faction: string;
 };
 
 export class Member {
@@ -75,6 +76,7 @@ export class Member {
                     : undefined,
                 avatar: row.character.avatar || "/avatar-anon.png",
                 last_login_timestamp: row.character.last_login_timestamp,
+                faction: row.character.faction || "",
             },
             row.registration_source || "bnet_oauth",
             new Date(row.created_at),

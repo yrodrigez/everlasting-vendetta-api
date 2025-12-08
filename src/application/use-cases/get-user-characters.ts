@@ -1,10 +1,9 @@
-import { IUserRepository } from "@repositories/i-user-repository";
-import { ITokenService } from "src/domain/services/i-token-service";
-import { IWowCharacterService } from "@repositories/i-wow-character-service";
 import { Member } from "@entities/member";
 import { WoWCharacter } from "@entities/wow/wow-character";
-import { createLogger } from "../../infrastructure/logging/index.ts";
 import { UserRepositoryError } from "@errors/user-repository-error";
+import { IUserRepository } from "@repositories/i-user-repository";
+import { IWowCharacterService } from "@repositories/i-wow-character-service";
+import { createLogger } from "../../infrastructure/logging/index.ts";
 
 export class GetUserCharacters {
     private logger = createLogger("GetUserCharacters");
@@ -60,6 +59,7 @@ export class GetUserCharacters {
                                 char.last_login_timestamp,
                                 { name: char.character_class.name || '', id: 0 },
                                 { name: char.playable_class.name, id: 0 },
+                                char.faction,
                                 char.guild,
                                 char.avatar,
                             );
@@ -87,6 +87,7 @@ export class GetUserCharacters {
                             char.last_login_timestamp,
                             { name: char.character_class.name || '', id: 0 },
                             { name: char.playable_class.name, id: 0 },
+                            char.faction,
                             char.guild,
                             char.avatar,
                         );
@@ -108,6 +109,7 @@ export class GetUserCharacters {
                     char.last_login_timestamp,
                     { name: char.character_class.name || '', id: 0 },
                     { name: char.playable_class.name, id: 0 },
+                    char.faction,
                     char.guild,
                     char.avatar,
                 );

@@ -66,6 +66,7 @@ export class SyncWowAccountCharactersUsecase {
                 "last_login_timestamp": character.last_login_timestamp,
                 selectedRole: character.selectedRole,
                 rank: character.guild?.rank || 6,
+                faction: character.faction,
             };
 
             const member = new Member(

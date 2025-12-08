@@ -11,4 +11,6 @@ export interface IMemberRepository {
         realmSlug: string,
         characterName: string,
     ): Promise<Member | null>;
+    findByUserIdAndCharacterId(userId: string, characterId: number): Promise<Member | null>;
+    findAllByUserId(userId: string): Promise<Member[]>;
 }

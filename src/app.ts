@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { corsMiddleware } from "./middleware/cors.middleware";
-import { loggerMiddleware } from "./middleware/logger.middleware";
-import { routes } from "./routes";
-import { requestContextMiddleware } from "./middleware/request-context-middleware";
+import { corsMiddleware } from "./infrastructure/http/middleware/cors.middleware";
+import { loggerMiddleware } from "./infrastructure/http/middleware/logger.middleware";
+import { routes } from "./infrastructure/http/routes";
+import { requestContextMiddleware } from "./infrastructure/http/middleware/request-context-middleware";
 
 export function createApp() {
     const app = new Hono();

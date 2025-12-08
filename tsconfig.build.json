@@ -1,18 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "NodeNext",
     "lib": ["ES2022"],
-    "moduleResolution": "bundler",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true,
     "baseUrl": ".",
     "paths": {
       "@entities/*": ["./src/domain/entities/*"],
@@ -30,5 +30,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/tests/**/*"]
 }

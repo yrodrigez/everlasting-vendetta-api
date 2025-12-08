@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+.env*
+.wrangler
+wrangler.toml
+*.log
+coverage
+.idea
+.vscode
+*.test.ts
+*.spec.ts
+src/tests
+scripts

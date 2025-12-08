@@ -211,4 +211,45 @@ export class MemberRepository implements IMemberRepository {
 
         return data.map((item: any) => Member.fromDB(item));
     }
+
+    async findByUserIdAndCharacterId(userId: string, characterId: number): Promise<Member | null> {
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("*")
+            .eq("user_id", userId)
+            .eq("id", characterId)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error fetching member by user ID and character ID: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return Member.fromDB(data);
+    }
+
+    async findAllByUserId(userId: string): Promise<Member[]> {
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("*")
+            .eq("user_id", userId);
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error fetching members by user ID: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return [];
+        }
+
+        return data.map((row: any) => Member.fromDB(row));
+    }
 }

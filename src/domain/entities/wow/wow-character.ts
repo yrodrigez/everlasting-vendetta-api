@@ -31,9 +31,10 @@ export class WoWCharacter {
         public readonly last_login_timestamp: number,
         public readonly character_class: CharacterClass,
         public readonly playable_class: PlayableClass,
+        public readonly faction: string,
         public readonly guild?: Guild,
         public readonly avatar?: string,
-    ) {}
+    ) { }
 
     withAvatar(avatar: string): WoWCharacter {
         return new WoWCharacter(
@@ -45,6 +46,7 @@ export class WoWCharacter {
             this.last_login_timestamp,
             this.character_class,
             this.playable_class,
+            this.faction,
             this.guild,
             avatar,
         );
@@ -62,11 +64,13 @@ export class WoWCharacter {
             playable_class: this.playable_class,
             guild: this.guild,
             avatar: this.avatar,
+            selectedRole: this.selectedRole,
+            faction: this.faction,
         };
     }
 
     static fromApiResponse(data: any): WoWCharacter {
-        return new WoWCharacter(
+        const char = new WoWCharacter(
             data.id,
             data.wow_account_id,
             data.name,
@@ -85,6 +89,7 @@ export class WoWCharacter {
                 id: (data.playable_class || data.character_class)?.id,
                 name: (data.playable_class || data.character_class)?.name,
             },
+            data.faction?.type,
             data.guild
                 ? {
                     name: data.guild.name,
@@ -94,5 +99,11 @@ export class WoWCharacter {
                 : undefined,
             undefined, // avatar is not provided in the API response
         );
+
+        if (data.selectedRole) {
+            char.selectedRole = data.selectedRole;
+        }
+
+        return char;
     }
 }

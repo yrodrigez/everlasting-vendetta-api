@@ -37,7 +37,7 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 		if (!response.ok) {
 			const text = await response.text();
 			throw new BlizzardApiError(
-				`CharacterEquipmentService::fetchEquipment - Error fetching equipment: ${text ?? 'Unknown error'} ${response.status} ${response.statusText} token: ${token}`,
+				`CharacterEquipmentService::fetchEquipment - Error fetching equipment (${url}): ${text ?? 'Unknown error'} ${response.status} ${response.statusText} token: ${token}`,
 			);
 		}
 

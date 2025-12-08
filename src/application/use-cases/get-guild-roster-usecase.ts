@@ -117,7 +117,8 @@ export class GetGuildRosterUseCase {
                 name: char.playable_class?.name,
                 id: 0,
             },
-            char.guild,
+            "", // faction - to be filled
+            char.guild ?? undefined,
             char.avatar,
         );
 

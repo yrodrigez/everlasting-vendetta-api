@@ -1,7 +1,7 @@
 import { DatabaseClientFactory } from "@database/database-client-factory";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 import { WowCharacterService } from "@external/wow-character-service";
-import { CharacterAvatarController } from "@http/middleware/controllers/wow/character-avatar-controller";
+import { CharacterAvatarController } from "@http/controllers/wow/character-avatar-controller";
 import { GetCharacterAvatarUseCase } from "@use-cases/get-character-avatar-usecase";
 import { BlizzardTokenRepository } from "src/infrastructure/repositories/blizzard-token-repository";
 import { MemberRepository } from "src/infrastructure/repositories/member-repository";
