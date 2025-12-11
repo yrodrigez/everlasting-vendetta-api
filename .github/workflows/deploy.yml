@@ -14,6 +14,6 @@ jobs:
       - name: Deploy
         run: |
           curl --request GET \
-            --url "{{ secrets.COOLIFY_WEBHOOK_URL }}" \
+            --url "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
             --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             --fail --silent --show-error
