@@ -12,6 +12,7 @@ routes.get("/health", (c) => {
     return c.json({
         status: "ok",
         timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
     });
 });
 
