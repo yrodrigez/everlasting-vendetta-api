@@ -4,6 +4,7 @@ export interface CharacterEquipment {
 		readonly itemId: number;
 		readonly inventoryType: string;
 		readonly isEnchanted: boolean;
+		readonly fetchUrl: string;
 	}>;
 }
 

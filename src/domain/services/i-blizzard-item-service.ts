@@ -7,5 +7,5 @@ export interface BlizzardItemDetails {
 }
 
 export interface IBlizzardItemService {
-    fetchItemDetails(token: string, itemId: number): Promise<BlizzardItemDetails>;
+    fetchItemDetails(token: string, itemId: number, fetchUrl?: string): Promise<BlizzardItemDetails>;
 }

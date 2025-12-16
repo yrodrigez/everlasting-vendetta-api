@@ -15,9 +15,10 @@ export class ItemService implements IItemService {
 		itemId: number,
 		token: string,
 		forceRefresh: boolean = false,
+		fetchUrl?: string,
 	): Promise<ItemDetails> {
 		if (forceRefresh) {
-			return this.fetchNewItem(token, itemId);
+			return this.fetchNewItem(token, itemId, fetchUrl);
 		}
 
 		const cachedItem = await this.getItemFromDatabase(itemId);
@@ -63,10 +64,11 @@ export class ItemService implements IItemService {
 	private async fetchNewItem(
 		token: string,
 		itemId: number,
+		fetchUrl?: string,
 	): Promise<ItemDetails> {
 		const [wowHeadItem, bnetDetails] = await Promise.all([
 			this.fetchWoWHeadItem(itemId),
-			this.fetchItemDetailsFromBlizzard(token, itemId),
+			this.fetchItemDetailsFromBlizzard(token, itemId, fetchUrl),
 		]);
 
 		const itemDetails: ItemDetails = {
@@ -86,8 +88,9 @@ export class ItemService implements IItemService {
 	private async fetchItemDetailsFromBlizzard(
 		token: string,
 		itemId: number,
+		fetchUrl?: string,
 	): Promise<Partial<ItemDetails>> {
-		return await this.blizzardItemService.fetchItemDetails(token, itemId);
+		return {}//await this.blizzardItemService.fetchItemDetails(token, itemId, fetchUrl); // TEMP DISABLE BNET FETCH IS NOT RELIABLE
 	}
 
 	private async fetchWoWHeadItem(itemId: number): Promise<ItemDetails> {

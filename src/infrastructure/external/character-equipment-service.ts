@@ -43,14 +43,23 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 
 		const data = await response.json() as any;
 
-		const equippedItems = (data?.equipped_items || []).map((item: any) => ({
-			itemId: parseInt(item?.item?.id ?? 0, 10),
-			inventoryType: `INVTYPE_${item.inventory_type?.type}`,
-			isEnchanted:
-				item.enchantments?.filter(
-					(e: any) => e.enchantment_slot?.type === "PERMANENT",
-				).length > 0,
-		}));
+		const equippedItems = (data?.equipped_items || []).map((item: any) => {
+			const url = item?.item?.key?.href as string;
+			let fetchUrl: URL | undefined = undefined;
+			if (url) {
+				fetchUrl = new URL(url);
+				fetchUrl.searchParams.set("locale", LOCALE);
+			}
+			return {
+				itemId: parseInt(item?.item?.id ?? 0, 10),
+				inventoryType: `INVTYPE_${item.inventory_type?.type}`,
+				isEnchanted:
+					item.enchantments?.filter(
+						(e: any) => e.enchantment_slot?.type === "PERMANENT",
+					).length > 0,
+				fetchUrl,
+			};
+		});
 
 		return {
 			characterName,

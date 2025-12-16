@@ -1,7 +1,7 @@
 import { IBlizzardItemService, BlizzardItemDetails } from "src/domain/services/i-blizzard-item-service";
 import { getEnvironment } from "../environment";
 
-const VERSION = '1.15.7_60013-'
+const VERSION = ''
 
 export class BlizzardItemService implements IBlizzardItemService {
     private readonly apiBaseUrl: string;
@@ -15,8 +15,8 @@ export class BlizzardItemService implements IBlizzardItemService {
         this.locale = blizzardLocale;
     }
 
-    async fetchItemDetails(token: string, itemId: number): Promise<BlizzardItemDetails> {
-        const url = this.createItemUrl(itemId);
+    async fetchItemDetails(token: string, itemId: number, fetchUrl?: string): Promise<BlizzardItemDetails> {
+        const url = fetchUrl ?? this.createItemUrl(itemId);
 
         const response = await fetch(url, {
             headers: {

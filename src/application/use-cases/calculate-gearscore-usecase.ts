@@ -43,13 +43,16 @@ export class CalculateGearScoreUseCase {
         // Fetch equipment for all characters
         const equipments = await Promise.all(
             request.characters.map(({ name, realm }) =>
-                this.limit(() =>
-                    this.equipmentService.fetchEquipment(
+                this.limit(async () => {
+                    const data = await this.equipmentService.fetchEquipment(
                         name.toLowerCase(),
                         realm.toLowerCase(),
                         token.access_token,
                     )
-                )
+
+                    const equippedItems = data.equippedItems.filter(item => item.inventoryType.toLocaleLowerCase().indexOf('tabard') === -1);
+                    return { ...data, equippedItems };
+                })
             ),
         );
 
@@ -74,6 +77,7 @@ export class CalculateGearScoreUseCase {
             id: item.itemId,
             type: item.inventoryType,
             isEnchanted: item.isEnchanted,
+            fetchUrl: item.fetchUrl?.toString(),
         }));
 
         // Check if character is fully enchanted
@@ -111,6 +115,7 @@ export class CalculateGearScoreUseCase {
                         item.id,
                         token,
                         true,
+                        item.fetchUrl,
                     );
 
                     // Map quality string to enum

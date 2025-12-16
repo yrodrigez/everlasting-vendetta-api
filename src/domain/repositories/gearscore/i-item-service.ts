@@ -15,5 +15,6 @@ export interface IItemService {
 		itemId: number,
 		token: string,
 		forceRefresh?: boolean,
+		fetchUrl?: string,
 	): Promise<ItemDetails>;
 }
