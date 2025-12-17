@@ -32,13 +32,13 @@ export class Member {
         public readonly userId: string | undefined,
         public readonly wowAccountId: number,
         public readonly character: MemberCharacter,
-        public readonly registrationSource: string,
+        public readonly registrationSource?: string,
         public readonly created_at?: Date,
         public readonly updated_at?: Date,
     ) { }
 
 
-    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string, createdAt: Date, updatedAt: Date): Member {
+    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string | null, createdAt: Date, updatedAt: Date): Member {
         return new Member(
             character.id,
             userId,
@@ -56,7 +56,7 @@ export class Member {
                 selectedRole: character.selectedRole,
                 faction: character.faction,
             },
-            registrationSource,
+            registrationSource || undefined,
             createdAt,
             updatedAt
         )

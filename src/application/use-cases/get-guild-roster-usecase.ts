@@ -111,8 +111,7 @@ export class GetGuildRosterUseCase {
             this.logger.info(`Upserting ${fetched.length} fetched guild roster members into repository`)
 
             await this.characterRepository.upsertMany(fetched.map(c => {
-
-                return Member.fromWoWCharacter(c, undefined, 0, 'guild-roster-sync', new Date(), new Date())
+                return Member.fromWoWCharacter(c, undefined, 0, null, new Date(), new Date())
             }));
         } catch (error) {
             this.logger.error('Failed to upsert fetched guild roster members', error)

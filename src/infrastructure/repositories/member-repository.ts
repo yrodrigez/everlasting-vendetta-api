@@ -16,7 +16,7 @@ export class MemberRepository implements IMemberRepository {
             .select("*")
             .eq("character->realm->>slug", normalizedRealm)
             .in("character->>name", normalizedNames);
-            
+
         if (error) {
             throw new MemberRepositoryError(
                 `Error fetching members by realm and names: ${error.message || "Unknown error"}`,
@@ -211,7 +211,7 @@ export class MemberRepository implements IMemberRepository {
 
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
-            .upsert(members.map((m) => m.toJSON()), { onConflict: "id" })
+            .upsert(members.map((m) => Object.fromEntries(Object.entries(m.toJSON()).filter(([_, v]) => Boolean(v)))), { onConflict: "id" })
             .select('*');
 
         if (error) {
