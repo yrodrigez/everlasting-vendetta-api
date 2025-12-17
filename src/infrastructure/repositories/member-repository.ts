@@ -8,6 +8,28 @@ const MEMBER_TABLE = "ev_member";
 export class MemberRepository implements IMemberRepository {
     constructor(private readonly database: DatabaseClient) { }
 
+    async findAllByRealmSlugAndNames(realmSlug: string, characterNames: string[]): Promise<Member[]> {
+        const normalizedRealm = realmSlug.trim().toLowerCase();
+        const normalizedNames = characterNames.map(name => name.trim());
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("*")
+            .eq("character->realm->>slug", normalizedRealm)
+            .in("character->>name", normalizedNames);
+            
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error fetching members by realm and names: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return [];
+        }
+
+        return data.map((row: object) => Member.fromDB(row));
+    }
+
     async findById(id: number): Promise<Member | null> {
         const { data, error } = await this.database
             .from(MEMBER_TABLE)

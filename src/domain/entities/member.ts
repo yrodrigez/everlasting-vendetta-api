@@ -1,3 +1,5 @@
+import { WoWCharacter } from "./wow/wow-character";
+
 export type MemberCharacter = {
     id: number;
     name: string;
@@ -35,6 +37,39 @@ export class Member {
         public readonly updated_at?: Date,
     ) { }
 
+
+    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string, createdAt: Date, updatedAt: Date): Member {
+        return new Member(
+            character.id,
+            userId,
+            wowAccountId,
+            {
+                id: character.id,
+                name: character.name,
+                realm: character.realm,
+                level: character.level,
+                playable_class: character.playable_class,
+                character_class: character.character_class,
+                guild: character.guild,
+                avatar: character.avatar || "/avatar-anon.png",
+                last_login_timestamp: character.last_login_timestamp,
+                selectedRole: character.selectedRole,
+                faction: character.faction,
+            },
+            registrationSource,
+            createdAt,
+            updatedAt
+        )
+    }
+
+    /**
+     * @deprecated Use Member.fromWoWCharacter instead
+     * @param character 
+     * @param userId 
+     * @param wowAccountId 
+     * @param registrationSource 
+     * @returns 
+     */
     static fromWowCharacter(character: MemberCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string): Member {
         return new Member(
             character.id,

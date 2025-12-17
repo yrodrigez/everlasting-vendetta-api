@@ -13,4 +13,8 @@ export interface IMemberRepository {
     ): Promise<Member | null>;
     findByUserIdAndCharacterId(userId: string, characterId: number): Promise<Member | null>;
     findAllByUserId(userId: string): Promise<Member[]>;
+    findAllByRealmSlugAndNames(
+        realmSlug: string,
+        characterNames: string[],
+    ): Promise<Member[]>;
 }
