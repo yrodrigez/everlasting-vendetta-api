@@ -45,7 +45,7 @@ export class SyncWowAccountCharactersUsecase {
                     this.logger.info(
                         `Keeping existing source ${existingMember.registrationSource} for ${character.name}`
                     );
-                    finalSource = existingMember.registrationSource;
+                    finalSource = existingMember.registrationSource || finalSource;
                 }
             }
 

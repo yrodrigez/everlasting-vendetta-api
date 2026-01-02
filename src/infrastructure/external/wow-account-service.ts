@@ -8,12 +8,16 @@ export default class WowAccountService extends BlizzardApi
 	private readonly namespace: string = "profile-classic1x-eu";
 
 	constructor(
-		override readonly token: string,
+		override readonly token: string = "",
 	) {
 		super(token);
 	}
 
-	async getWoWAccount(): Promise<WowUserProfile> {
+	async getWoWAccount(token?: string): Promise<WowUserProfile> {
+		if (!token && !this.token) {
+			throw new Error("No Battle.net token provided");
+		}
+		
 		const response = await fetch(
 			this.createUrl(
 				"profile/user/wow",
@@ -23,7 +27,7 @@ export default class WowAccountService extends BlizzardApi
 			),
 			{
 				headers: {
-					"Authorization": `Bearer ${this.token}`,
+					"Authorization": `Bearer ${token ?? this.token}`,
 				},
 			},
 		);

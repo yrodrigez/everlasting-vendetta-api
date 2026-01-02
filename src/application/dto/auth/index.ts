@@ -1,8 +1,3 @@
-/**
- * Barrel export for Auth DTOs
- * Allows importing all DTOs from a single location
- */
-
 // Input DTOs
 export * from './auth-input.dtos';
 export * from './auth-user-with-battlenet-input';

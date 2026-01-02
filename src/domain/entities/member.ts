@@ -29,7 +29,7 @@ export type MemberCharacter = {
 export class Member {
     constructor(
         public readonly id: number,
-        public readonly userId: string | undefined,
+        public _userId: string | undefined,
         public readonly wowAccountId: number,
         public readonly character: MemberCharacter,
         public readonly registrationSource?: string,
@@ -37,8 +37,12 @@ export class Member {
         public readonly updated_at?: Date,
     ) { }
 
+    public set userId(userId: string) {
+        this._userId = userId;
+    }
 
-    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string | null, createdAt: Date, updatedAt: Date): Member {
+
+    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string | null, createdAt: Date | undefined, updatedAt: Date | undefined): Member {
         return new Member(
             character.id,
             userId,
@@ -122,7 +126,7 @@ export class Member {
     toJSON() {
         return {
             id: this.id,
-            user_id: this.userId,
+            user_id: this._userId,
             wow_account_id: this.wowAccountId,
             character: this.character,
             registration_source: this.registrationSource,

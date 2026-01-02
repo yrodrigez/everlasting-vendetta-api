@@ -4,6 +4,8 @@ import { refreshRoute } from './refresh';
 import { sessionsRoute } from './sessions';
 import { revokeRoute } from './revoke';
 import { revokeAllRoute } from './revoke-all';
+import { linkOAuthAccountRoute } from './link-oauth-account';
+import { getMyProfileRoute } from './get-my-profile';
 
 const hono = new Hono();
 hono.route('/login', loginRoute);
@@ -11,5 +13,7 @@ hono.route('/refresh', refreshRoute);
 hono.route('/sessions', sessionsRoute);
 hono.route('/revoke', revokeRoute);
 hono.route('/revoke_all', revokeAllRoute);
+hono.route('/link-oauth-account', linkOAuthAccountRoute);
+hono.route('/my-profile', getMyProfileRoute);
 
 export default hono;

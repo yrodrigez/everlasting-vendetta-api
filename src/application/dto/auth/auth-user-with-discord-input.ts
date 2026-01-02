@@ -3,4 +3,5 @@ export interface AuthenticateUserWithDiscordInput {
     expires_at: number; // OAuth token expiry timestamp in seconds
     ipAddress?: string;
     userAgent?: string;
+    refreshToken?: string;
 }

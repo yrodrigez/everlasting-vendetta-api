@@ -7,6 +7,7 @@ import { IBannedRepository } from "@repositories/i-banned-repository";
 import { IRoleRepository } from "@repositories/i-role-repository";
 import { ITokenService } from "src/domain/services/i-token-service";
 import { OAuthProvider } from "src/domain/types/auth-types";
+import { Provider } from "@dto/auth/provider";
 
 export class RefreshUserSessionTokenUseCase {
     constructor(
@@ -40,7 +41,7 @@ export class RefreshUserSessionTokenUseCase {
 
         const roles = await this.rolesRepository.findByMemberId(verifiedToken.sub);
         const permissions = await this.permissionsRepository.findByRoles(roles);
-        const oauthProvider = await this.authRepository.getOauthProvider(verifiedToken.sub, verifiedToken.provider as OAuthProvider);
+        const oauthProvider = await this.authRepository.getOauthProvider(verifiedToken.sub, verifiedToken.provider as Provider);
         const shouldRefreshProviderToken = oauthProvider ? (new Date(oauthProvider.expiresAt) < new Date(Date.now() + 5 * 60 * 1000)) : false
         const isBanned = await this.bansRepository.isUserBanned(verifiedToken.sub);
 
@@ -62,7 +63,7 @@ export class RefreshUserSessionTokenUseCase {
             if (!headToken || headToken.revoked || headToken.expiresAt < new Date() || headToken.isRotated) {
                 headToken = await this.authRepository.getActiveFamilyToken(
                     verifiedToken.family_id,
-                    verifiedToken.provider as OAuthProvider
+                    verifiedToken.provider as Provider
                 );
             }
 
@@ -130,7 +131,7 @@ export class RefreshUserSessionTokenUseCase {
 
         const activeFamilyToken = await this.authRepository.getActiveFamilyToken(
             verifiedToken.family_id,
-            verifiedToken.provider as OAuthProvider
+            verifiedToken.provider as Provider
         );
 
         if (!activeFamilyToken) {

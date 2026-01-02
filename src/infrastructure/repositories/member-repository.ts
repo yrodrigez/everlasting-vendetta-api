@@ -8,6 +8,26 @@ const MEMBER_TABLE = "ev_member";
 export class MemberRepository implements IMemberRepository {
     constructor(private readonly database: DatabaseClient) { }
 
+    async unlinkAllFromUserId(userId: string): Promise<Member[]> {
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .update({ user_id: null, wow_account_id: 0 })
+            .eq("user_id", userId)
+            .select("*");
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error unlinking members from user ID: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return [];
+        }
+
+        return data.map((row: any) => Member.fromDB(row));
+    }
+
     async findAllByRealmSlugAndNames(realmSlug: string, characterNames: string[]): Promise<Member[]> {
         const normalizedRealm = realmSlug.trim().toLowerCase();
         const normalizedNames = characterNames.map(name => name.trim());
@@ -204,14 +224,16 @@ export class MemberRepository implements IMemberRepository {
         return Member.fromDB(data);
     }
 
-    async upsertMany(members: Member[]): Promise<Member[]> {
+    async upsertMany(members: Member[], dangerouslyAllowEmptyValues: (keyof Member)[] = []): Promise<Member[]> {
         if (members.length === 0) {
             return [];
         }
 
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
-            .upsert(members.map((m) => Object.fromEntries(Object.entries(m.toJSON()).filter(([_, v]) => Boolean(v)))), { onConflict: "id" })
+            .upsert(members.map((m) => Object.fromEntries(Object.entries(m.toJSON()).filter(([k, v]) => {
+                return dangerouslyAllowEmptyValues.includes(k as keyof Member) || Boolean(v);
+            }))), { onConflict: "id" })
             .select('*');
 
         if (error) {
@@ -256,12 +278,23 @@ export class MemberRepository implements IMemberRepository {
         return Member.fromDB(data);
     }
 
-    async findAllByUserId(userId: string): Promise<Member[]> {
-        const { data, error } = await this.database
-            .from(MEMBER_TABLE)
-            .select("*")
-            .eq("user_id", userId);
+    async findAllByUserId(userId: string, realmSlugs?: string[]): Promise<Member[]> {
+        const { data, error } = await (() => {
+            if (realmSlugs && realmSlugs.length > 0) {
+                const normalizedSlugs = realmSlugs.map(slug => slug.trim().toLowerCase());
+                return this.database
+                    .from(MEMBER_TABLE)
+                    .select("*")
+                    .eq("user_id", userId)
+                    .in("character->realm->>slug", normalizedSlugs);
+            }
 
+            return this.database
+                .from(MEMBER_TABLE)
+                .select("*")
+                .eq("user_id", userId)
+        })()
+        
         if (error) {
             throw new MemberRepositoryError(
                 `Error fetching members by user ID: ${error.message || "Unknown error"}`,

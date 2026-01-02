@@ -1,0 +1,1 @@
+export type Provider = 'bnet_oauth' | 'discord_oauth';

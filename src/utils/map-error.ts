@@ -1,3 +1,4 @@
+import { AuthError } from "@errors/auth-error";
 import { DomainError } from "@errors/domain-error";
 
 export class ResponseMapper {
@@ -11,6 +12,16 @@ export class ResponseMapper {
 
     static toJSON(error: DomainError | unknown, requestId: string): { error: boolean; message: string; code: string; statusCode: number; request_id: string } {
         if (error instanceof DomainError) {
+            return {
+                error: true,
+                message: error.message,
+                code: error.code,
+                statusCode: error.statusCode,
+                request_id: requestId,
+            };
+        }
+
+        if (error instanceof AuthError) {
             return {
                 error: true,
                 message: error.message,

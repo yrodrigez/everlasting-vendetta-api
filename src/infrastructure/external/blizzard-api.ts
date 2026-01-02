@@ -4,11 +4,11 @@ export default abstract class BlizzardApi {
 	protected readonly locale = "en_us";
 	protected readonly baseUrl = "https://eu.api.blizzard.com";
 	protected constructor(protected readonly token: string) {
-		if (!token) {
+		/* if (!token) {
 			throw new BlizzardApiError(
 				"No token provided for Blizzard API",
 			);
-		}
+		} */ // TODO: Remove comment to enforce token requirement
 	}
 
 	private sanitizeUrl(url: string): string {

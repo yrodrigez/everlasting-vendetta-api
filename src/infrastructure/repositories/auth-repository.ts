@@ -2,7 +2,6 @@ import { DatabaseClient } from "@database/database-client-factory";
 import { RefreshToken } from "@entities/auth/refresh-token";
 import { AuthError } from "@errors/auth-error";
 import { IAuthRepository } from "@repositories/i-auth-repository";
-import { OAuthProvider } from "src/domain/types/auth-types";
 import {
     StoreRefreshTokenDTO,
     RotateTokenDTO,
@@ -15,6 +14,9 @@ import {
     OauthProviderDTO,
     FindOrCreateUserResponseDTO
 } from "@dto/auth";
+import { OAuthProvider } from "@entities/auth/oauth-provider";
+import { LinkOAuthAccount } from "@entities/auth/link-oauth-account";
+import { Provider } from "@dto/auth/provider";
 
 export class AuthRepository implements IAuthRepository {
     private readonly authSchema = 'ev_auth';
@@ -22,6 +24,49 @@ export class AuthRepository implements IAuthRepository {
     constructor(
         private readonly database: DatabaseClient
     ) { }
+
+    async findAllByUserId(userId: string): Promise<OAuthProvider[]> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('oauth_providers')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error) {
+            throw new AuthError(
+                `Database error while retrieving OAuth providers by user ID: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        return (data || []).map(row => OAuthProvider.fromDataBase(row));
+    }
+
+    async findUserByProviderUserId(providerUserId: string, provider: Provider): Promise<OAuthProvider | null> {
+        const { data, error } = await this.database
+            .schema(this.authSchema)
+            .from('oauth_providers')
+            .select('*')
+            .eq('provider_user_id', providerUserId)
+            .eq('provider', provider)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new AuthError(
+                `Database error while retrieving OAuth provider by user ID: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return OAuthProvider.fromDataBase(data);
+    }
 
     async findTokenByJti(tokenJti: string): Promise<RefreshToken | null> {
         const { data, error } = await this.database
@@ -47,7 +92,7 @@ export class AuthRepository implements IAuthRepository {
         return RefreshToken.fromDatabase(data);
     }
 
-    async getOauthProvider(userId: string, provider: OAuthProvider): Promise<OauthProviderDTO | null> {
+    async getOauthProvider(userId: string, provider: Provider): Promise<OauthProviderDTO | null> {
         const { data, error } = await this.database
             .schema(this.authSchema)
             .from('oauth_providers')
@@ -233,9 +278,11 @@ export class AuthRepository implements IAuthRepository {
     async findOrCreateUser(dto: FindOrCreateUserDTO): Promise<FindOrCreateUserResponseDTO> {
         const { username } = dto;
         const { data, error } = await this.database
-            .from('users')
-            .select('user_id:id')
-            .eq('user_name', username)
+        .schema(this.authSchema)
+            .from('oauth_providers')
+            .select('user_id')
+            .eq('provider', dto.provider)
+            .eq('provider_username', username)
             .limit(1)
             .maybeSingle();
 
@@ -299,6 +346,38 @@ export class AuthRepository implements IAuthRepository {
         }
     }
 
+    async linkOAuthAccount(data: LinkOAuthAccount): Promise<OAuthProvider> {
+
+        const params = {
+            p_user_id: data.userId,
+            p_provider: data.provider,
+            p_provider_user_id: data.providerUserId,
+            p_provider_email: data.providerEmail,
+            p_provider_username: data.providerUsername,
+            p_access_token: data.accessToken,
+            p_refresh_token: data.refreshToken,
+            p_token_expires: data.expiresAt,
+            p_metadata: data.metadata
+        }
+
+
+        const { data: result, error } = await this.database
+            .schema(this.authSchema)
+            .rpc('link_oauth_account', params);
+
+        if (error) {
+            throw new AuthError(
+                `Database error while linking OAuth account: ${error.message || 'Unknown error'}`,
+                'DB_ERROR',
+                500
+            );
+        }
+
+        return OAuthProvider.fromDataBase(result);
+    }
+
+
+
     async getUserSessions(userId: string): Promise<RefreshToken[]> {
         const { data, error } = await this.database
             .schema(this.authSchema)
@@ -344,7 +423,7 @@ export class AuthRepository implements IAuthRepository {
         }
     }
 
-    async getActiveFamilyToken(familyId: string, provider: OAuthProvider): Promise<RefreshToken | null> {
+    async getActiveFamilyToken(familyId: string, provider: Provider): Promise<RefreshToken | null> {
         const { data, error } = await this.database
             .schema(this.authSchema)
             .from('refresh_tokens')

@@ -23,7 +23,8 @@ export class AuthenticateWithDiscordUseCase {
         discordToken,
         expires_at,
         ipAddress,
-        userAgent
+        userAgent,
+        refreshToken, // TODO: implement refresh token logic
     }: AuthenticateUserWithDiscordInput): Promise<AuthenticateUserWithDiscordOutput> {
         try {
             // Validate token by fetching Discord user info

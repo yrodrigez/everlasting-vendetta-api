@@ -24,7 +24,7 @@ loginRoute.post(createRoute<LoginInput>(
         functionName: "auth-login",
         inputSchema: loginSchema,
     },
-    async ({ input: { access_token, provider, expires_at }, ipAddress, userAgent }) => {
+    async ({ input: { access_token, provider, expires_at, refresh_token }, ipAddress, userAgent }) => {
 
         const databaseClient = DatabaseClientFactory.getInstance();
         const blizzardOAuthService = new BlizzardOauthService();
@@ -73,7 +73,8 @@ loginRoute.post(createRoute<LoginInput>(
                 discordToken: access_token,
                 expires_at,
                 ipAddress: ipAddress || undefined,
-                userAgent: userAgent || undefined
+                userAgent: userAgent || undefined,
+                refreshToken: refresh_token || undefined,
             });
         }
 
