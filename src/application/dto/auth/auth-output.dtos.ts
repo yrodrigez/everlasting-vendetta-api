@@ -4,6 +4,7 @@
  */
 
 export interface OauthProviderDTO {
+    provider: string;
     accessToken: string;
     refreshToken: string | null;
     expiresAt: Date;

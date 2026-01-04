@@ -7,6 +7,23 @@ const MEMBER_TABLE = "ev_member";
 
 export class MemberRepository implements IMemberRepository {
     constructor(private readonly database: DatabaseClient) { }
+    async isUserGuildMember(userId: string, realmSlugs: string[]): Promise<boolean> {
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .eq("character->guild->>name", 'Everlasting Vendetta')
+            .in("character->realm->>slug", realmSlugs)
+            .limit(1);
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error checking if user is guild member: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        return (data?.length ?? 0) > 0;
+    }
 
     async unlinkAllFromUserId(userId: string): Promise<Member[]> {
         const { data, error } = await this.database
@@ -294,7 +311,7 @@ export class MemberRepository implements IMemberRepository {
                 .select("*")
                 .eq("user_id", userId)
         })()
-        
+
         if (error) {
             throw new MemberRepositoryError(
                 `Error fetching members by user ID: ${error.message || "Unknown error"}`,

@@ -5,13 +5,11 @@ import { WoWCharacter } from "@entities/wow/wow-character";
 import { AuthError } from "@errors/auth-error";
 import { IAuthRepository } from "@repositories/i-auth-repository";
 import { IMemberRepository } from "@repositories/i-member-repository";
-import { IPermissionRepository } from "@repositories/i-permission-repository";
-import { IRoleRepository } from "@repositories/i-role-repository";
 import { IWowAccountService } from "@repositories/i-wow-account-service";
 import { IWowCharacterService } from "@repositories/i-wow-character-service";
-import { IBannedRepository } from "@repositories/i-banned-repository";
 import { IBlizzardOAuthService } from "src/domain/services/i-blizzard-oauth-service";
 import { ITokenService } from "src/domain/services/i-token-service";
+import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
 import { IWowAccountRepository } from "@repositories/i-wow-account-repository";
 
@@ -23,10 +21,8 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly wowAccountService: IWowAccountService,
         private readonly charactersService: IWowCharacterService,
         private readonly memberRepository: IMemberRepository,
-        private readonly roleRepository: IRoleRepository,
-        private readonly permissionsRepository: IPermissionRepository,
         private readonly tokenService: ITokenService,
-        private readonly bansRepository: IBannedRepository,
+        private readonly userContextService: IUserContextService,
         private readonly wowAccountRepository: IWowAccountRepository,
     ) { }
 
@@ -36,6 +32,7 @@ export class AuthenticateWithBattleNetUseCase {
         ipAddress,
         userAgent
     }: AuthenticateUserWithBattleNetInput): Promise<AuthenticateUserWithBattleNetOutput> {
+        const PROVIDER = 'bnet_oauth';
         const isValid = await this.blizzardOAuthService.checkTokenValidity(bnetToken);
         if (!isValid) {
             throw new AuthError(
@@ -53,7 +50,7 @@ export class AuthenticateWithBattleNetUseCase {
         const providerUserId = id.toString();
         const providerUsername = battletag;
         const { userId } = await this.authRepository.findOrCreateUser({
-            provider: 'bnet',
+            provider: PROVIDER,
             providerUserId,
             username: providerUsername
         });
@@ -89,7 +86,7 @@ export class AuthenticateWithBattleNetUseCase {
 
         await this.authRepository.storeOauthToken({
             userId,
-            provider: 'bnet',
+            provider: PROVIDER,
             providerUserId,
             providerUsername,
             accessToken: bnetToken,
@@ -97,32 +94,32 @@ export class AuthenticateWithBattleNetUseCase {
             expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000) // Default to 1 hour if not provided
         });
 
-        const roles = await this.roleRepository.findByMemberId(userId); // TODO: userId is not implmented should be by userId
-        const permissions = await this.permissionsRepository.findByRoles(roles);
-        const isBanned = await this.bansRepository.isUserBanned(userId);
+        const userContext = await this.userContextService.getUserContext(userId, 'bnet_oauth');
+
 
         const familyId = await this.authRepository.createTokenFamily({
             userId,
-            provider: 'bnet',
+            provider: PROVIDER,
             ipAddress
         });
 
         const tokenPair = this.tokenService.generateTokenPair({
             userId: userId,
-            roles,
-            permissions,
-            provider: 'bnet',
+            roles: userContext.roles,
+            permissions: userContext.permissions,
+            provider: PROVIDER,
             familyId,
-            isAdmin: roles.includes('ADMIN'),
+            isAdmin: userContext.isAdmin,
             isTemporal: false,
-            isBanned: isBanned
+            isBanned: userContext.isBanned,
+            isGuildMember: userContext.isGuildMember
         });
 
         await this.authRepository.storeRefreshToken({
             userId,
             tokenJti: tokenPair.refreshTokenJti!,
             familyId,
-            provider: 'bnet',
+            provider: PROVIDER,
             expiresAt: new Date(tokenPair.refreshTokenExpiry! * 1000),
             ipAddress,
             userAgent

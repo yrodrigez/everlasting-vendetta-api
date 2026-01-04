@@ -2,10 +2,8 @@ import { GenerateTokenPairInput } from "@dto/auth/generate-token-pair-input";
 import { RefreshTokenInput } from "@dto/auth/refresh-token-input";
 import { RefreshTokenOutput } from "@dto/auth/refresh-token-output";
 import { IAuthRepository } from "@repositories/i-auth-repository";
-import { IPermissionRepository } from "@repositories/i-permission-repository";
-import { IBannedRepository } from "@repositories/i-banned-repository";
-import { IRoleRepository } from "@repositories/i-role-repository";
 import { ITokenService } from "src/domain/services/i-token-service";
+import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { OAuthProvider } from "src/domain/types/auth-types";
 import { Provider } from "@dto/auth/provider";
 
@@ -13,9 +11,7 @@ export class RefreshUserSessionTokenUseCase {
     constructor(
         private readonly authRepository: IAuthRepository,
         private readonly tokenService: ITokenService,
-        private readonly rolesRepository: IRoleRepository,
-        private readonly permissionsRepository: IPermissionRepository,
-        private readonly bansRepository: IBannedRepository,
+        private readonly userContextService: IUserContextService,
     ) { }
 
     async execute({ ipAddress, refreshToken, userAgent }: RefreshTokenInput): Promise<RefreshTokenOutput> {
@@ -39,11 +35,11 @@ export class RefreshUserSessionTokenUseCase {
             throw new Error("Refresh token expired"); // TODO custom error
         }
 
-        const roles = await this.rolesRepository.findByMemberId(verifiedToken.sub);
-        const permissions = await this.permissionsRepository.findByRoles(roles);
-        const oauthProvider = await this.authRepository.getOauthProvider(verifiedToken.sub, verifiedToken.provider as Provider);
-        const shouldRefreshProviderToken = oauthProvider ? (new Date(oauthProvider.expiresAt) < new Date(Date.now() + 5 * 60 * 1000)) : false
-        const isBanned = await this.bansRepository.isUserBanned(verifiedToken.sub);
+        // Get complete user context using the domain service
+        const userContext = await this.userContextService.getUserContext(
+            verifiedToken.sub,
+            verifiedToken.provider as Provider
+        );
 
         if (currentToken.isRotated) {
             // Revoke all tokens in the family
@@ -81,13 +77,14 @@ export class RefreshUserSessionTokenUseCase {
 
             const newAccessToken = this.tokenService.generateAccessToken({
                 userId: verifiedToken.sub,
-                roles,
-                permissions,
-                provider: verifiedToken.provider as "bnet" | "discord",
-                isAdmin: roles.includes('ADMIN'),
+                roles: userContext.roles,
+                permissions: userContext.permissions,
+                provider: verifiedToken.provider,
+                isAdmin: userContext.isAdmin,
                 isTemporal: false,
-                isBanned: isBanned,
-                exp: Math.floor(headToken.expiresAt.getTime() / 1000)
+                isBanned: userContext.isBanned,
+                exp: Math.floor(headToken.expiresAt.getTime() / 1000),
+                isGuildMember: userContext.isGuildMember
             } as Partial<GenerateTokenPairInput>);
 
             return {
@@ -95,7 +92,7 @@ export class RefreshUserSessionTokenUseCase {
                 accessTokenExpiry: newAccessToken.expiry,
                 accessTokenJti: newAccessToken.jti,
                 provider: verifiedToken.provider as OAuthProvider,
-                shouldRefreshProviderToken: shouldRefreshProviderToken,
+                shouldRefreshProviderToken: userContext.shouldRefreshProviderToken,
                 refreshToken: resignedRefresh.token,
                 refreshTokenExpiry: resignedRefresh.expiry,
                 refreshTokenJti: headToken!.jti
@@ -104,13 +101,14 @@ export class RefreshUserSessionTokenUseCase {
 
         const newTokenPair = this.tokenService.generateTokenPair({
             userId: verifiedToken.sub,
-            provider: verifiedToken.provider as "bnet" | "discord",
+            provider: verifiedToken.provider,
             familyId: verifiedToken.family_id,
-            roles,
-            permissions,
-            isAdmin: roles.includes('ADMIN'),
+            roles: userContext.roles,
+            permissions: userContext.permissions,
+            isAdmin: userContext.isAdmin,
             isTemporal: false,
-            isBanned: isBanned
+            isBanned: userContext.isBanned,
+            isGuildMember: userContext.isGuildMember
         });
 
         let rotationError: unknown;
@@ -120,7 +118,7 @@ export class RefreshUserSessionTokenUseCase {
                 newJti: newTokenPair.refreshTokenJti!,
                 userId: verifiedToken.sub,
                 familyId: verifiedToken.family_id,
-                provider: verifiedToken.provider as "bnet" | "discord",
+                provider: verifiedToken.provider,
                 expiresAt: new Date(newTokenPair.refreshTokenExpiry! * 1000),
                 ipAddress: ipAddress || undefined,
                 userAgent: userAgent || undefined
@@ -172,7 +170,7 @@ export class RefreshUserSessionTokenUseCase {
             refreshTokenExpiry: refreshTokenPayload.refreshTokenExpiry,
             refreshTokenJti: refreshTokenPayload.refreshTokenJti,
             provider: verifiedToken.provider as OAuthProvider,
-            shouldRefreshProviderToken: shouldRefreshProviderToken
+            shouldRefreshProviderToken: userContext.shouldRefreshProviderToken
         };
     }
 }

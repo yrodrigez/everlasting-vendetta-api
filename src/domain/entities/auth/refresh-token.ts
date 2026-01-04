@@ -1,11 +1,12 @@
-import { OAuthProvider, TokenRevocationReason } from "src/domain/types/auth-types";
+import { Provider } from "@dto/auth/provider";
+import { TokenRevocationReason } from "src/domain/types/auth-types";
 
 export class RefreshToken {
     readonly id: string;
     readonly userId: string;
     readonly jti: string;
     readonly familyId: string;
-    readonly provider: OAuthProvider;
+    readonly provider: Provider;
     readonly expiresAt: Date;
     readonly createdAt: Date;
     readonly lastUsedAt: Date | null;
@@ -41,7 +42,7 @@ export class RefreshToken {
         userId: string;
         jti: string;
         familyId: string;
-        provider: OAuthProvider;
+        provider: Provider;
         expiresAt: Date;
         createdAt?: Date;
         lastUsedAt?: Date | null;
@@ -79,7 +80,7 @@ export class RefreshToken {
         user_id: string;
         token_jti: string;
         family_id: string;
-        provider: OAuthProvider;
+        provider: Provider;
         expires_at: string; // ISO date string
         created_at: string; // ISO date string
         last_used_at: string | null; // ISO date string or null

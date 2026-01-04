@@ -1,4 +1,5 @@
-import { OAuthProvider, TokenRevocationReason } from "src/domain/types/auth-types";
+import { TokenRevocationReason } from "src/domain/types/auth-types";
+import { Provider } from "./provider";
 
 /**
  * Input DTOs for Auth operations
@@ -9,7 +10,7 @@ export interface StoreRefreshTokenDTO {
     userId: string;
     tokenJti: string;
     familyId: string;
-    provider: OAuthProvider;
+    provider: Provider;
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
@@ -20,7 +21,7 @@ export interface RotateTokenDTO {
     newJti: string;
     userId: string;
     familyId: string;
-    provider: OAuthProvider;
+    provider: Provider;
     expiresAt: Date;
     ipAddress?: string;
     userAgent?: string;
@@ -28,7 +29,7 @@ export interface RotateTokenDTO {
 
 export interface CreateTokenFamilyDTO {
     userId: string;
-    provider: OAuthProvider;
+    provider: Provider;
     ipAddress?: string;
 }
 
@@ -44,7 +45,7 @@ export interface RevokeFamilyTokensDTO {
 
 export interface StoreOauthTokenDTO {
     userId: string;
-    provider: OAuthProvider;
+    provider: Provider;
     providerUserId: string;
     providerUsername: string;
     accessToken: string;

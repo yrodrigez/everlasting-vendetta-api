@@ -1,3 +1,5 @@
+import { Provider } from "./provider";
+
 export interface AccessTokenPayload {
     jti: string;
     sub: string;
@@ -10,11 +12,12 @@ export interface AccessTokenPayload {
     isTemporal: boolean;
     isAdmin: boolean;
     email?: string;
-    provider: 'bnet' | 'discord';
+    provider: Provider;
     bnet_id?: string;
     discord_id?: string;
     custom_roles: string[];
     permissions: string[];
     isBanned: boolean;
+    isGuildMember: boolean;
     iss: string;
 }

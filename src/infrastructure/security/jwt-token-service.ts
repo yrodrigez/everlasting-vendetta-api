@@ -5,6 +5,7 @@ import { ITokenService } from 'src/domain/services/i-token-service';
 import { TokenPair } from '@dto/auth/token-pair';
 import { GenerateTokenPairInput } from '@dto/auth/generate-token-pair-input';
 import { getEnvironment } from '../environment';
+import { Provider } from '@dto/auth/provider';
 
 export class JWTTokenService implements ITokenService {
     private accessSecret: string | Buffer;
@@ -24,7 +25,7 @@ export class JWTTokenService implements ITokenService {
         return decode(token) as AccessTokenPayload | RefreshTokenPayload;
     }
 
-    signRefreshFromJti({ jti, userId, family_id, provider, exp, }: { jti: string; userId: string; family_id: string; provider: 'bnet' | 'discord'; exp: number; }): { token: string; expiry: number; jti: string; } {
+    signRefreshFromJti({ jti, userId, family_id, provider, exp, }: { jti: string; userId: string; family_id: string; provider: Provider; exp: number; }): { token: string; expiry: number; jti: string; } {
         const now = Math.floor(Date.now() / 1000);
         const refreshTokenPayload: RefreshTokenPayload = {
             jti,
@@ -69,6 +70,7 @@ export class JWTTokenService implements ITokenService {
             provider: input.provider,
             isTemporal: input.isTemporal || false,
             isAdmin: input.isAdmin || false,
+            isGuildMember: input.isGuildMember || false,
             email: ''
         };
 

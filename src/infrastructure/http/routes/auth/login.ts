@@ -16,6 +16,8 @@ import { RoleRepository } from "src/infrastructure/repositories/role-repository"
 import { BannedRepository } from "src/infrastructure/repositories/banned-repository";
 import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 import { WowAccountRepository } from "src/infrastructure/repositories/wow-account-repository";
+import { UserContextService } from "src/domain/services/user-context-service";
+import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
 
 const loginRoute = new Hono();
 
@@ -36,8 +38,17 @@ loginRoute.post(createRoute<LoginInput>(
         const tokenService = new JWTTokenService(jwtSecret, jwtRefreshSecret, jwtKid);
         const bansRepository = new BannedRepository(databaseClient);
         const wowAccountRepository = new WowAccountRepository(databaseClient);
+        const realmsRepository = new RealmsRepository(databaseClient);
+        const userContextService = new UserContextService(
+            roleRepository,
+            permissionsRepository,
+            authRepository,
+            bansRepository,
+            realmsRepository,
+            memberRepository,
+        );
 
-        if (provider === 'bnet') {
+        if (provider === 'bnet' || provider === 'bnet_oauth') {
             const wowAccountService = new WowAccountService(access_token);
             const characterService = new WowCharacterService(access_token);
             const battlenetAuthUseCase = new AuthenticateWithBattleNetUseCase(
@@ -46,28 +57,24 @@ loginRoute.post(createRoute<LoginInput>(
                 wowAccountService,
                 characterService,
                 memberRepository,
-                roleRepository,
-                permissionsRepository,
                 tokenService,
-                bansRepository,
+                userContextService,
                 wowAccountRepository,
             )
             return await battlenetAuthUseCase.execute({
                 bnetToken: access_token,
                 expires_at,
-                provider,
+                provider: 'bnet_oauth',
                 ipAddress: ipAddress || undefined,
                 userAgent: userAgent || undefined
             });
         }
 
-        if (provider === 'discord') {
+        if (provider === 'discord' || provider === 'discord_oauth') {
             const discordAuthUseCase = new AuthenticateWithDiscordUseCase(
                 authRepository,
-                roleRepository,
-                permissionsRepository,
                 tokenService,
-                bansRepository,
+                userContextService,
             );
             return await discordAuthUseCase.execute({
                 discordToken: access_token,

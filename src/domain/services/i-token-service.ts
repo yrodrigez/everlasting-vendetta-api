@@ -1,5 +1,6 @@
 import { AccessTokenPayload } from "@dto/auth/access-token-payload";
 import { GenerateTokenPairInput } from "@dto/auth/generate-token-pair-input";
+import { Provider } from "@dto/auth/provider";
 import { RefreshTokenPayload } from "@dto/auth/refresh-token-payload";
 import { TokenPair } from "@dto/auth/token-pair";
 
@@ -27,7 +28,7 @@ export interface ITokenService {
         jti: string;
         userId: string;
         family_id: string;
-        provider: 'bnet' | 'discord';
+        provider: Provider;
         exp: number;
     }): { token: string; expiry: number; jti: string };
 

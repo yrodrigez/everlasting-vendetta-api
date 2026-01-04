@@ -2,10 +2,8 @@ import { AuthenticateUserWithDiscordInput } from "@dto/auth/auth-user-with-disco
 import { AuthenticateUserWithDiscordOutput } from "@dto/auth/auth-user-with-discord-output";
 import { AuthError } from "@errors/auth-error";
 import { IAuthRepository } from "@repositories/i-auth-repository";
-import { IBannedRepository } from "@repositories/i-banned-repository";
-import { IPermissionRepository } from "@repositories/i-permission-repository";
-import { IRoleRepository } from "@repositories/i-role-repository";
 import { ITokenService } from "src/domain/services/i-token-service";
+import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
 
 export class AuthenticateWithDiscordUseCase {
@@ -13,10 +11,8 @@ export class AuthenticateWithDiscordUseCase {
 
     constructor(
         private readonly authRepository: IAuthRepository,
-        private readonly roleRepository: IRoleRepository,
-        private readonly permissionsRepository: IPermissionRepository,
         private readonly tokenService: ITokenService,
-        private readonly bansRepository: IBannedRepository,
+        private readonly userContextService: IUserContextService,
     ) { }
 
     async execute({
@@ -27,6 +23,7 @@ export class AuthenticateWithDiscordUseCase {
         refreshToken, // TODO: implement refresh token logic
     }: AuthenticateUserWithDiscordInput): Promise<AuthenticateUserWithDiscordOutput> {
         try {
+            const PROVIDER = 'discord_oauth';
             // Validate token by fetching Discord user info
             const userInfo = await this.getDiscordUserInfo(discordToken);
             if (!userInfo) {
@@ -42,7 +39,7 @@ export class AuthenticateWithDiscordUseCase {
 
             // Find or create user
             const { userId } = await this.authRepository.findOrCreateUser({
-                provider: 'discord',
+                provider: PROVIDER,
                 providerUserId,
                 username: providerUsername
             });
@@ -50,7 +47,7 @@ export class AuthenticateWithDiscordUseCase {
             // Store Discord token
             await this.authRepository.storeOauthToken({
                 userId,
-                provider: 'discord',
+                provider: PROVIDER,
                 providerUserId,
                 providerUsername,
                 accessToken: discordToken,
@@ -58,28 +55,27 @@ export class AuthenticateWithDiscordUseCase {
                 expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000)
             });
 
-            // Get user roles and permissions
-            const roles = await this.roleRepository.findByMemberId(userId);
-            const permissions = await this.permissionsRepository.findByRoles(roles);
-            const isBanned = await this.bansRepository.isUserBanned(userId);
+            // Get complete user context using the domain service
+            const userContext = await this.userContextService.getUserContext(userId, 'discord' as any);
 
             // Create token family for session management
             const familyId = await this.authRepository.createTokenFamily({
                 userId,
-                provider: 'discord',
+                provider: PROVIDER,
                 ipAddress
             });
 
             // Generate token pair
             const tokenPair = this.tokenService.generateTokenPair({
                 userId: userId,
-                roles,
-                permissions,
-                provider: 'discord',
+                roles: userContext.roles,
+                permissions: userContext.permissions,
+                provider: PROVIDER,
                 familyId,
-                isAdmin: roles.includes('ADMIN'),
+                isAdmin: userContext.isAdmin,
                 isTemporal: false,
-                isBanned: isBanned
+                isBanned: userContext.isBanned,
+                isGuildMember: userContext.isGuildMember
             });
 
             // Store refresh token
@@ -87,7 +83,7 @@ export class AuthenticateWithDiscordUseCase {
                 userId,
                 tokenJti: tokenPair.refreshTokenJti!,
                 familyId,
-                provider: 'discord',
+                provider: PROVIDER,
                 expiresAt: new Date(tokenPair.refreshTokenExpiry! * 1000),
                 ipAddress,
                 userAgent

@@ -115,6 +115,7 @@ export class AuthRepository implements IAuthRepository {
         }
 
         return {
+            provider: data.provider,
             accessToken: data.access_token,
             refreshToken: data.refresh_token,
             expiresAt: new Date(data.token_expires_at),

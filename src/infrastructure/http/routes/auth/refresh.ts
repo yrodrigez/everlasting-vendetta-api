@@ -9,6 +9,9 @@ import { PermissionRepository } from "src/infrastructure/repositories/permission
 import { RoleRepository } from "src/infrastructure/repositories/role-repository";
 import { BannedRepository } from "src/infrastructure/repositories/banned-repository";
 import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
+import { UserContextService } from "src/domain/services/user-context-service";
+import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
+import { MemberRepository } from "@infrastructure/repositories/member-repository";
 
 const refreshRoute = new Hono();
 refreshRoute.post(createRoute<RefreshInput>(
@@ -26,12 +29,20 @@ refreshRoute.post(createRoute<RefreshInput>(
         const rolesRepository = new RoleRepository(database);
         const bansRepository = new BannedRepository(database);
         const permissionsRepository = new PermissionRepository(database);
+        const realmsRepository = new RealmsRepository(database);
+        const memberRepository = new MemberRepository(database);
+        const userContextService = new UserContextService(
+            rolesRepository,
+            permissionsRepository,
+            authRepository,
+            bansRepository,
+            realmsRepository,
+            memberRepository,
+        );
         const usecase = new RefreshUserSessionTokenUseCase(
             authRepository,
             tokenService,
-            rolesRepository,
-            permissionsRepository,
-            bansRepository,
+            userContextService,
         )
 
         const newTokenPair = await usecase.execute({
