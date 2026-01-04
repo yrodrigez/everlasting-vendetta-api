@@ -35,10 +35,16 @@ export class Member {
         public readonly registrationSource?: string,
         public readonly created_at?: Date,
         public readonly updated_at?: Date,
-    ) { }
+    ) { 
+        this._userId = _userId;
+    }
 
     public set userId(userId: string) {
         this._userId = userId;
+    }
+    
+    public get userId(): string | undefined {
+        return this._userId;
     }
 
 
