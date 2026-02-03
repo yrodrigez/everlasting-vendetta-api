@@ -2,23 +2,20 @@ import type {
 	IItemService,
 	ItemDetails,
 } from "@repositories/gearscore/i-item-service.ts";
-import { IBlizzardItemService } from "src/domain/services/i-blizzard-item-service.ts";
 import type { DatabaseClient } from "../database/database-client-factory.ts";
-import { BlizzardItemService } from "./blizzard-item-service.ts";
 export class ItemService implements IItemService {
 	constructor(
 		private readonly supabase: DatabaseClient,
-		private readonly blizzardItemService: IBlizzardItemService = new BlizzardItemService(),
+
 	) { }
 
 	async getItem(
 		itemId: number,
-		token: string,
 		forceRefresh: boolean = false,
-		fetchUrl?: string,
 	): Promise<ItemDetails> {
 		if (forceRefresh) {
-			return this.fetchNewItem(token, itemId, fetchUrl);
+			console.log(`Force refreshing item: '${itemId}'`);
+			return this.fetchNewItem(itemId);
 		}
 
 		const cachedItem = await this.getItemFromDatabase(itemId);
@@ -26,7 +23,7 @@ export class ItemService implements IItemService {
 			return cachedItem.details;
 		}
 
-		return this.fetchNewItem(token, itemId);
+		return this.fetchNewItem(itemId);
 	}
 
 	private async getItemFromDatabase(
@@ -55,26 +52,25 @@ export class ItemService implements IItemService {
 	}
 
 	private isCacheValid(lastUpdated: string): boolean {
-		const threeWeeksInMs = 1000 * 60 * 60 * 24 * 21;
+		const threeWeeksInMs = 1000 * 60 * 60 * 24 * 21; // 21 days
 		const lastUpdatedTime = new Date(lastUpdated).getTime();
 		const now = new Date().getTime();
 		return now - lastUpdatedTime < threeWeeksInMs;
 	}
 
 	private async fetchNewItem(
-		token: string,
 		itemId: number,
-		fetchUrl?: string,
+
 	): Promise<ItemDetails> {
-		const [wowHeadItem, bnetDetails] = await Promise.all([
+		const [wowHeadItem, displayId] = await Promise.all([
 			this.fetchWoWHeadItem(itemId),
-			this.fetchItemDetailsFromBlizzard(token, itemId, fetchUrl),
+			this.getItemDisplayId(itemId),
 		]);
 
 		const itemDetails: ItemDetails = {
 			...wowHeadItem,
-			...bnetDetails,
 			icon: wowHeadItem.icon,
+			displayId: displayId,
 		};
 
 		// Save to database asynchronously (don't wait)
@@ -85,18 +81,41 @@ export class ItemService implements IItemService {
 		return itemDetails;
 	}
 
-	private async fetchItemDetailsFromBlizzard(
-		token: string,
-		itemId: number,
-		fetchUrl?: string,
-	): Promise<Partial<ItemDetails>> {
-		return {}//await this.blizzardItemService.fetchItemDetails(token, itemId, fetchUrl); // TEMP DISABLE BNET FETCH IS NOT RELIABLE
+	private async getItemDisplayId(id: number): Promise<number> {
+		const baseUrl = `https://www.wowhead.com/item=${id}`;
+		const response = await fetch(baseUrl);
+		if (!response.ok) {
+			throw new Error(`Error fetching item display id: '${id}', status: ${response.status}`);
+		}
+		const data = await response.text();
+
+		const regex = /&quot;displayId&quot;\s*:\s*([0-9]+)/
+		const match = data.match(regex);
+		if (!match) {
+			console.warn(`No match for display id in item: '${id}'`);
+			return 0;
+		}
+		const displayId = match[1];
+
+		return +displayId;
 	}
 
-	private async fetchWoWHeadItem(itemId: number): Promise<ItemDetails> {
+	private async fetchWoWHeadItem(itemId: number, env: number = 4): Promise<ItemDetails> {
 		const url =
-			`https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=4&locale=0`;
+			`https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=${env}&locale=0`;
 		const response = await fetch(url);
+		
+		if (!response.ok && env === 4) {
+			// retry with 5 for TBC items
+			return this.fetchWoWHeadItem(itemId, 5);
+		}
+
+		if (!response.ok) {
+			throw new Error(
+				`ItemService::fetchWoWHeadItem - Failed to fetch WoWHead item ${itemId}: ${response.status} ${response.statusText} (env: ${env})`,
+			);
+		}
+
 		const data = await response.json() as {
 			icon: string;
 			quality: number;
@@ -125,11 +144,16 @@ export class ItemService implements IItemService {
 
 		return {
 			icon: `https://wow.zamimg.com/images/wow/icons/medium/${data.icon}.jpg`,
-			itemLevel,
+			level: itemLevel,
+			name: data.name,
+			id: data.id,
+			tooltip: data.tooltip,
+			itemLevel: itemLevel,
 			quality: {
 				type: qualityName.toUpperCase(),
 				name: qualityName[0].toUpperCase() + qualityName.slice(1),
 			},
+
 		};
 	}
 
@@ -140,7 +164,7 @@ export class ItemService implements IItemService {
 		const { error } = await this.supabase.from("wow_items").upsert({
 			id: itemId,
 			details: itemDetails,
-			display_id: 0,
+			display_id: itemDetails.displayId,
 			updated_at: new Date(),
 		});
 

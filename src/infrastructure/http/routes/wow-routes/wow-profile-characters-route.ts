@@ -49,9 +49,11 @@ wowRoutes.post(createRoute<WowProfileCharactersInput>(
         if (!bnetToken) {
             throw new Error("Invalid or expired access token");
         }
+        const environment = getEnvironment();
+        const profileNamespaces = environment.profileNamespaces;
         // Create token-specific services
-        const wowAccountService = new WowAccountService(bnetToken);
-        const wowCharacterService = new WowCharacterService(bnetToken);
+        const wowAccountService = new WowAccountService(profileNamespaces);
+        const wowCharacterService = new WowCharacterService();
 
         const getRealmCharactersUseCase = new GetRealmCharactersUseCase(
             wowAccountService,
@@ -64,7 +66,7 @@ wowRoutes.post(createRoute<WowProfileCharactersInput>(
         // Orchestrate use cases
         const accountId = await saveWowAccountUseCase.execute(bnetToken);
 
-        const accountCharacters = await getRealmCharactersUseCase.execute();
+        const accountCharacters = await getRealmCharactersUseCase.execute({ accessToken: bnetToken });
 
         const eligibleCharacters = accountCharacters
             .filter((char) => char.level >= 10)
@@ -74,7 +76,7 @@ wowRoutes.post(createRoute<WowProfileCharactersInput>(
                 level: char.level,
             }));
 
-        const characters = await getFullCharactersUseCase.execute(eligibleCharacters);
+        const characters = await getFullCharactersUseCase.execute(eligibleCharacters, bnetToken);
 
         await syncWowAccountCharactersUseCase.execute(
             characters,

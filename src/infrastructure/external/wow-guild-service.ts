@@ -1,8 +1,8 @@
-import BlizzardApi from "./blizzard-api";
-import type { IWowGuildService } from "src/domain/services/i-wow-guild-service";
 import type { WowGuildOutput } from "@dto/wow-guild/wow-guild-output";
-import { getEnvironment } from "../environment";
 import { BlizzardApiError } from "src/domain/errors/blizzard-api-error.ts";
+import type { IWowGuildService } from "src/domain/services/i-wow-guild-service";
+import BlizzardApi from "./blizzard-api";
+import { findNamespace } from "@infrastructure/environment";
 
 type BlizzardGuildRosterResponse = {
     guild?: {
@@ -34,29 +34,27 @@ type BlizzardGuildRosterResponse = {
 };
 
 export class WowGuildService extends BlizzardApi implements IWowGuildService {
-    private readonly namespace: string;
-
-    constructor(token: string) {
-        super(token);
-        const { classicProfileNamespace } = getEnvironment();
-        this.namespace = classicProfileNamespace;
-    }
 
     async getGuildRoster(
         realmSlug: string,
         guildSlug: string,
+        token: string,
     ): Promise<WowGuildOutput> {
         const normalizedRealm = realmSlug.trim().toLowerCase();
         const normalizedGuild = guildSlug.trim().toLowerCase();
+        const namespace = findNamespace(realmSlug, 'profile')
+        if (!namespace) {
+            throw new Error(`Namespace not found for realm: ${realmSlug}`);
+        }
 
         const url = this.createUrl(
             `/data/wow/guild/${encodeURIComponent(normalizedRealm)}/${encodeURIComponent(normalizedGuild)}/roster`,
-            { namespace: this.namespace },
+            { namespace },
         );
 
         const response = await fetch(url, {
             headers: {
-                Authorization: `Bearer ${this.token}`,
+                Authorization: `Bearer ${token}`,
             },
         });
 

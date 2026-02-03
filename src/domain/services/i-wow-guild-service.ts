@@ -4,6 +4,7 @@ export interface IWowGuildService {
     getGuildRoster(
         realmSlug: string,
         guildSlug: string,
+        token: string,
     ): Promise<WowGuildOutput>;
 }
 

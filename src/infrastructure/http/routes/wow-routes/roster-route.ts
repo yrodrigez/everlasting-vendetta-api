@@ -9,6 +9,7 @@ import { WowGuildService } from "@external/wow-guild-service";
 import { WowCharacterService } from "@external/wow-character-service";
 import { GetGuildRosterUseCase } from "@use-cases/get-guild-roster-usecase";
 import { ResponseMapper } from "@utils/map-error";
+import { getEnvironment } from "@infrastructure/environment";
 
 const rosterRouter = new Hono();
 
@@ -28,17 +29,20 @@ rosterRouter.get(
                 blizzardOauthService,
             );
 
-            const token = await tokenRepository.getCurrentToken();
 
-            const wowGuildService = new WowGuildService(token.access_token);
-            const wowCharacterService = new WowCharacterService(
-                token.access_token,
-            );
+            const wowGuildService = new WowGuildService();
+            const wowCharacterService = new WowCharacterService();
+            const environment = getEnvironment();
+            const realms = environment.currentRealms.map(r => ({ slug: r.slug }));
+            const guildNames = environment.guildNames;
 
             const useCase = new GetGuildRosterUseCase(
                 wowGuildService,
                 memberRepository,
                 wowCharacterService,
+                tokenRepository,
+                realms,
+                guildNames
             );
 
             logger.info("Fetching guild roster for authenticated request");

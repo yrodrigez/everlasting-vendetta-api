@@ -2,6 +2,7 @@ import { ICharacterValidationService } from "@domain/services/i-character-valida
 import { Member, MemberCharacter } from "@entities/member";
 import { createLogger } from "@infrastructure/logging";
 import { IMemberRepository } from "@repositories/i-member-repository";
+import ITokenRepository from "@repositories/i-token-repository";
 
 const logger = createLogger('LinkCharacterToUserUseCase');
 
@@ -9,6 +10,7 @@ export class LinkCharacterToUserUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly characterValidationService: ICharacterValidationService,
+        private readonly tokenRepository: ITokenRepository,
     ) { }
 
     async execute({ userId, characterName, realmSlug }: { userId: string; characterName: string; realmSlug: string; }): Promise<Member[]> {
@@ -17,8 +19,8 @@ export class LinkCharacterToUserUseCase {
         if (!isRealmValid) {
             throw new Error(`Realm '${realmSlug}' is not allowed.`);
         }
-
-        const character = await this.characterValidationService.validateCharacterExists(realmSlug, characterName);
+        const bnetToken = await this.tokenRepository.getCurrentToken();
+        const character = await this.characterValidationService.validateCharacterExists(realmSlug, characterName, bnetToken.access_token);
         const availability = await this.characterValidationService.isCharacterAvailable(character.id, userId);
         if (!availability.available) {
             throw new Error(`Character '${characterName}' on realm '${realmSlug}' is already linked by another user.`);

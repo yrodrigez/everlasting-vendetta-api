@@ -24,6 +24,7 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
         private readonly wowAccountRepository: IWowAccountRepository,
+        private readonly realms: { slug: string }[]
     ) { }
 
     async execute({
@@ -55,8 +56,9 @@ export class AuthenticateWithBattleNetUseCase {
             username: providerUsername
         });
 
-        const wowAccount = await this.wowAccountService.getWoWAccount();
-        const accountCharacters = wowAccount.wow_accounts.reduce((acc, val) => acc.concat(val.characters), [] as WoWCharacter[]);
+        const account = await this.wowAccountService.getWoWAccount(bnetToken);
+
+        const accountCharacters = account.wow_accounts.flatMap(acc => acc.characters).filter(x => this.realms.map(({ slug }) => slug).includes(x?.realm?.slug));
 
         const result = await Promise.all(
             accountCharacters.map(async (char) => {
@@ -64,10 +66,21 @@ export class AuthenticateWithBattleNetUseCase {
                     if (char.level < 10) {
                         return char;
                     }
+                    const charRealm = this.realms.find(r => r.slug === char.realm.slug);
+
+                    if (!charRealm) {
+                        this.logger.warn(`Realm ${char.realm.slug} not found in configured realms. Skipping character ${char.name}.`);
+                        return null;
+                    }
+
+                    if (this.realms.includes(charRealm)) {
+                        this.logger.info(`Fetching character ${char.name} on realm ${char.realm.slug} without avatar as realm is in configured realms.`);
+                    }
 
                     const character = await this.charactersService.getCharacterWithAvatar(
                         char.realm.slug,
                         char.name,
+                        bnetToken
                     );
                     this.logger.info(`Fetched character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
 
@@ -81,7 +94,7 @@ export class AuthenticateWithBattleNetUseCase {
         this.logger.info(`User ${userId} has ${characters.length} characters from Battle.net account.`);
 
         await this.memberRepository.upsertMany(
-            characters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, wowAccount.id, 'bnet_oauth'))
+            characters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, account.id, 'bnet_oauth'))
         );
 
         await this.authRepository.storeOauthToken({

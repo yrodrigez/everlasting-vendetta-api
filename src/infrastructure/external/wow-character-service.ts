@@ -2,25 +2,24 @@ import BlizzardApi from "./blizzard-api.ts";
 import { WoWCharacter } from "../../domain/entities/wow/wow-character.ts";
 import { BlizzardApiError } from "../../domain/errors/blizzard-api-error.ts";
 import { IWowCharacterService } from "../../domain/repositories/i-wow-character-service.ts";
+import { findNamespace } from "@infrastructure/environment.ts";
 
 export class WowCharacterService extends BlizzardApi
 	implements IWowCharacterService {
-	private readonly namespace = "profile-classic1x-eu";
-	constructor(
-		token: string,
-	) {
-		super(token);
-	}
 
-	async getCharacter(realmSlug: string, characterName: string): Promise<WoWCharacter> {
+	async getCharacter(realmSlug: string, characterName: string, token: string): Promise<WoWCharacter> {
+		const namespace = findNamespace(realmSlug, 'profile');
+		if (!namespace) {
+			throw new Error(`Namespace not found for realm: ${realmSlug}`);
+		}
 		const response = await fetch(
 			this.createUrl(
 				`/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}`,
-				{ namespace: this.namespace },
+				{ namespace },
 			),
 			{
 				headers: {
-					"Authorization": `Bearer ${this.token}`,
+					"Authorization": `Bearer ${token}`,
 				},
 			},
 		);
@@ -28,12 +27,13 @@ export class WowCharacterService extends BlizzardApi
 		if (!response.ok) {
 			const text = await response.text();
 			console.error(
-				"Error fetching character data:",
+				`Error fetching character data: ${characterName} on ${realmSlug}`,
 				response.status,
 				text,
 			);
 			throw new BlizzardApiError(
 				`Error fetching character data: ${response.status} - ${text}`,
+				response.status,
 			);
 		}
 
@@ -42,24 +42,25 @@ export class WowCharacterService extends BlizzardApi
 		return WoWCharacter.fromApiResponse(data);
 	}
 
-	async getCharacterAvatar(realmSlug: string, characterName: string): Promise<string> {
+	async getCharacterAvatar(realmSlug: string, characterName: string, token: string): Promise<string> {
+		const namespace = findNamespace(realmSlug, 'profile');
+		if (!namespace) {
+			throw new Error(`Namespace not found for realm: ${realmSlug}`);
+		}
 		const response = await fetch(
 			this.createUrl(
 				`/profile/wow/character/${realmSlug}/${characterName.toLowerCase()}/character-media`,
-				{ namespace: this.namespace },
+				{ namespace },
 			),
 			{
 				headers: {
-					"Authorization": `Bearer ${this.token}`,
+					"Authorization": `Bearer ${token}`,
 				},
 			},
 		);
 
 		if (!response.ok) {
-			const text = await response.text();
-			throw new BlizzardApiError(
-				`Error fetching character avatar: ${response.status} - ${text}`,
-			);
+			return "/avatar-anon.png";
 		}
 
 		const data = await response.json() as { assets?: { key: string; value: string }[] };
@@ -70,11 +71,11 @@ export class WowCharacterService extends BlizzardApi
 		return avatarObject.value;
 	}
 
-	async getCharacterWithAvatar(realmSlug: string, characterName: string): Promise<WoWCharacter> {
+	async getCharacterWithAvatar(realmSlug: string, characterName: string, token: string): Promise<WoWCharacter> {
 		// Fetch both character data and avatar in parallel for better performance
 		const [character, avatar] = await Promise.all([
-			this.getCharacter(realmSlug, characterName),
-			this.getCharacterAvatar(realmSlug, characterName)
+			this.getCharacter(realmSlug, characterName, token),
+			this.getCharacterAvatar(realmSlug, characterName, token)
 		]);
 
 		return character.withAvatar(avatar);

@@ -42,8 +42,6 @@ export class UserContextService implements IUserContextService {
             realms.some(realm => realm.id === char.realm.id)
         );
         
-        
-        
         const shouldRefreshProviderToken = oauthProvider 
             ? this.shouldRefreshToken(oauthProvider.expiresAt)
             : false;

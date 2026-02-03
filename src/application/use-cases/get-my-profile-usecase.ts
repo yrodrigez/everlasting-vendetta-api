@@ -13,6 +13,7 @@ export class GetMyProfileUseCase {
         return {
             members: members.map(member => member.toJSON()),
             accounts: authProviders,
+            mainCharacter: members.find(m => m.character.name === 'Alveric')
         };
     }
 }

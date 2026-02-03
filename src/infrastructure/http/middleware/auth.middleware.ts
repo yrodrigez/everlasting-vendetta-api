@@ -4,7 +4,7 @@ import { getEnvironment } from '../../environment';
 import { AccessTokenPayload } from '@dto/auth/access-token-payload';
 import { createLogger, Logger } from 'src/infrastructure/logging';
 import { ResponseMapper } from '@utils/map-error';
-import { stat } from 'fs';
+import { Provider } from '@dto/auth/provider';
 
 
 export interface AuthenticatedContext extends Context {
@@ -33,7 +33,7 @@ export type UserPayload = {
     userId: string;
     roles: string[];
     permissions: string[];
-    provider: 'bnet' | 'discord';
+    provider: Provider;
     isTemporal: boolean;
     isAdmin: boolean;
     isBanned: boolean;

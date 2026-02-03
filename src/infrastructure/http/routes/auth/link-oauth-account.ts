@@ -13,7 +13,7 @@ route.post('/',
         functionName: "auth-link-oauth-account",
         inputSchema: linkOAuthAccountSchema,
     }, async (ctx) => {
-        const usecase = LinkOAuthAccountUseCaseFactory.make(ctx.input.accessToken);
+        const usecase = LinkOAuthAccountUseCaseFactory.make();
         const controller = new LinkOauthAccountController(usecase);
         return controller.handle({
             ...ctx,

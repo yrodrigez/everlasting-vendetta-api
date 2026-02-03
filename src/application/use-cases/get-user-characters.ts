@@ -13,9 +13,10 @@ export class GetUserCharacters {
         private charactersService: IWowCharacterService,
     ) { }
 
-    async execute({ userId, realmSlug }: {
+    async execute({ userId, realmSlug, accessToken }: {
         userId: string;
-        realmSlug?: string;
+        accessToken: string;
+        realmSlug: string;
     }): Promise<WoWCharacter[]> {
 
         // Get the user's characters from the database
@@ -69,6 +70,7 @@ export class GetUserCharacters {
                         const character = await this.charactersService.getCharacterWithAvatar(
                             char.realm.slug,
                             char.name,
+                            accessToken
                         );
 
                         this.logger.info(`Fetched updated character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);

@@ -5,7 +5,21 @@ export interface ItemDetails {
 		readonly name: string;
 	};
 	readonly icon: string;
-}
+	readonly displayId?: number;
+	id: number; name: string;
+	type?: string;
+	icons?: {
+		large: string;
+		medium: string;
+		small: string;
+	}
+	level?: number;
+	tooltip?: string;
+	qualityName?: string;
+
+
+};
+
 
 export interface IItemService {
 	/**
@@ -13,8 +27,6 @@ export interface IItemService {
 	 */
 	getItem(
 		itemId: number,
-		token: string,
 		forceRefresh?: boolean,
-		fetchUrl?: string,
 	): Promise<ItemDetails>;
 }

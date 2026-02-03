@@ -1,22 +1,17 @@
-import { IBlizzardItemService, BlizzardItemDetails } from "src/domain/services/i-blizzard-item-service";
-import { getEnvironment } from "../environment";
-
-const VERSION = ''
+import { BlizzardItemDetails, IBlizzardItemService } from "src/domain/services/i-blizzard-item-service";
 
 export class BlizzardItemService implements IBlizzardItemService {
     private readonly apiBaseUrl: string;
-    private readonly namespace: string;
-    private readonly locale: string;
 
-    constructor() {
-        const { blizzardRegion, blizzardLocale, classicStaticNamespace } = getEnvironment();
-        this.apiBaseUrl = `https://${blizzardRegion}.api.blizzard.com`;
-        this.namespace = classicStaticNamespace.replace(/static-/, `static-${VERSION}`);
-        this.locale = blizzardLocale;
+    constructor(
+        private readonly locale: string,
+        private readonly region: string,
+    ) {
+        this.apiBaseUrl = `https://${this.region}.api.blizzard.com`;
     }
 
-    async fetchItemDetails(token: string, itemId: number, fetchUrl?: string): Promise<BlizzardItemDetails> {
-        const url = fetchUrl ?? this.createItemUrl(itemId);
+    async fetchItemDetails(token: string, itemId: number, namespace: string, fetchUrl?: string): Promise<BlizzardItemDetails> {
+        const url = fetchUrl ?? this.createItemUrl(itemId, namespace);
 
         const response = await fetch(url, {
             headers: {
@@ -51,7 +46,7 @@ export class BlizzardItemService implements IBlizzardItemService {
         };
     }
 
-    private createItemUrl(itemId: number): string {
-        return `${this.apiBaseUrl}/data/wow/item/${itemId}?namespace=${this.namespace}&locale=${this.locale}`;
+    private createItemUrl(itemId: number, namespace: string): string {
+        return `${this.apiBaseUrl}/data/wow/item/${itemId}?namespace=${namespace}&locale=${this.locale}`;
     }
 }

@@ -1,8 +1,8 @@
+import { Member, type MemberCharacter } from "@entities/member.ts";
+import { WoWCharacter } from "@entities/wow/wow-character.ts";
 import type { IMemberRepository } from "@repositories/i-member-repository";
 import type ITokenRepository from "@repositories/i-token-repository";
 import type { IWowCharacterService } from "@repositories/i-wow-character-service";
-import { Member, type MemberCharacter } from "@entities/member.ts";
-import { WoWCharacter } from "@entities/wow/wow-character.ts";
 import { createLogger } from "src/infrastructure/logging/index.ts";
 
 export interface GetWowCharacterInput {
@@ -17,7 +17,6 @@ export interface GetWowCharacterOutput {
     updated: boolean;
 }
 
-type CharacterServiceFactory = (accessToken: string) => IWowCharacterService;
 
 const CACHE_TTL_MS = 1000 * 60 * 15; // 15 minutes
 
@@ -27,7 +26,7 @@ export class GetWowCharacterUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly tokenRepository: ITokenRepository,
-        private readonly characterServiceFactory: CharacterServiceFactory,
+        private readonly wowCharacterService: IWowCharacterService,
     ) { }
 
     async execute(input: GetWowCharacterInput): Promise<GetWowCharacterOutput> {
@@ -63,12 +62,10 @@ export class GetWowCharacterUseCase {
         }
 
         const token = await this.tokenRepository.getCurrentToken();
-        const characterService = this.characterServiceFactory(
-            token.access_token,
-        );
-        const fetchedCharacter = await characterService.getCharacterWithAvatar(
+        const fetchedCharacter = await this.wowCharacterService.getCharacterWithAvatar(
             realmSlug,
             characterName,
+            token.access_token,
         );
 
         let updated = false;

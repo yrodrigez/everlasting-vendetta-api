@@ -22,11 +22,12 @@ export class CharacterValidationService implements ICharacterValidationService {
         return isValid;
     }
 
-    async validateCharacterExists(realmSlug: string, characterName: string): Promise<WoWCharacter> {
+    async validateCharacterExists(realmSlug: string, characterName: string, accessToken: string): Promise<WoWCharacter> {
         try {
             const character = await this.characterService.getCharacterWithAvatar(
                 realmSlug,
-                characterName
+                characterName,
+                accessToken,
             );
             this.logger.info(`Character ${characterName} on realm ${realmSlug} validated successfully`);
             return character;

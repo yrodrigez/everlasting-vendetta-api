@@ -2,6 +2,7 @@ import type { IMemberRepository } from "@repositories/i-member-repository";
 import type ITokenRepository from "@repositories/i-token-repository";
 import type { IWowCharacterService } from "@repositories/i-wow-character-service";
 import { Member } from "@entities/member";
+import { findNamespace } from "@infrastructure/environment";
 
 export interface GetCharacterAvatarInput {
     realmSlug: string;
@@ -15,13 +16,12 @@ export interface GetCharacterAvatarOutput {
     updated: boolean;
 }
 
-type CharacterServiceFactory = (accessToken: string) => IWowCharacterService;
 
 export class GetCharacterAvatarUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly tokenRepository: ITokenRepository,
-        private readonly characterServiceFactory: CharacterServiceFactory,
+        private readonly characterService: IWowCharacterService,
     ) { }
 
     async execute(
@@ -55,12 +55,12 @@ export class GetCharacterAvatarUseCase {
         }
 
         const token = await this.tokenRepository.getCurrentToken();
-        const characterService = this.characterServiceFactory(
-            token.access_token,
-        );
-        const fetchedAvatar = await characterService.getCharacterAvatar(
+        
+        
+        const fetchedAvatar = await this.characterService.getCharacterAvatar(
             realmSlug,
             characterName,
+            token.access_token
         );
 
         if (existingMember) {

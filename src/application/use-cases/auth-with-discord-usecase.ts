@@ -20,7 +20,7 @@ export class AuthenticateWithDiscordUseCase {
         expires_at,
         ipAddress,
         userAgent,
-        refreshToken, // TODO: implement refresh token logic
+        refreshToken,
     }: AuthenticateUserWithDiscordInput): Promise<AuthenticateUserWithDiscordOutput> {
         try {
             const PROVIDER = 'discord_oauth';
@@ -51,12 +51,12 @@ export class AuthenticateWithDiscordUseCase {
                 providerUserId,
                 providerUsername,
                 accessToken: discordToken,
-                refreshToken: null,
+                refreshToken: refreshToken || null,
                 expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000)
             });
 
             // Get complete user context using the domain service
-            const userContext = await this.userContextService.getUserContext(userId, 'discord' as any);
+            const userContext = await this.userContextService.getUserContext(userId, PROVIDER);
 
             // Create token family for session management
             const familyId = await this.authRepository.createTokenFamily({

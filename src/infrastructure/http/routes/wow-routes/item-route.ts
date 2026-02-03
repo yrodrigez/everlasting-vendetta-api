@@ -1,26 +1,26 @@
-import { Hono } from "hono";
+import { DatabaseClientFactory } from "@database/database-client-factory";
+import { BlizzardOauthService } from "@external/blizzard-oauth-service";
+import { ItemService } from "@external/item-service";
 import { createRoute } from "@http/hono-adapter";
+import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
     WowItemParams,
     wowItemParamsSchema,
     wowItemQuerySchema,
     type WowItemQuery,
 } from "@http/validators/schemas/wow-routes-schemas";
-import { DatabaseClientFactory } from "@database/database-client-factory";
-import { BlizzardTokenRepository } from "src/infrastructure/repositories/blizzard-token-repository";
-import { BlizzardOauthService } from "@external/blizzard-oauth-service";
-import { WowItemCacheRepository } from "src/infrastructure/repositories/wow-item-cache-repository";
-import { WoWHeadService } from "@external/wow-head-service";
-import { BlizzardItemService } from "@external/blizzard-item-service";
 import {
     GetWowItemDetailsUseCase,
     type GetWowItemDetailsOutput,
 } from "@use-cases/get-wow-item-details-usecase";
+import { Hono } from "hono";
+import { BlizzardTokenRepository } from "src/infrastructure/repositories/blizzard-token-repository";
 
 const wowItemRouter = new Hono();
 
 wowItemRouter.get(
     "/:itemId",
+    authMiddleware,
     createRoute<unknown, GetWowItemDetailsOutput, WowItemQuery, WowItemParams>(
         {
             functionName: "wow-item",
@@ -62,20 +62,15 @@ wowItemRouter.get(
             }
 
             const forceRefresh = normalizeForceFlag(query.force);
-
             const databaseClient = DatabaseClientFactory.getInstance();
-            const cacheRepository = new WowItemCacheRepository(databaseClient);
-            const wowHeadService = new WoWHeadService();
-            const blizzardItemService = new BlizzardItemService();
+            const itemService = new ItemService(databaseClient);
             const tokenRepository = new BlizzardTokenRepository(
                 databaseClient,
                 new BlizzardOauthService(),
             );
 
             const useCase = new GetWowItemDetailsUseCase(
-                cacheRepository,
-                wowHeadService,
-                blizzardItemService,
+                itemService,
                 tokenRepository,
             );
 

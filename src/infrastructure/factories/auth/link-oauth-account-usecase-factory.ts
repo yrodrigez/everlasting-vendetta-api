@@ -7,11 +7,11 @@ import { DiscordApi } from "@external/discord-api";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 
 export class LinkOAuthAccountUseCaseFactory {
-    static make(token: string): LinkOAuthAccountUseCase {
+    static make(): LinkOAuthAccountUseCase {
         const databaseClient = DatabaseClientFactory.getInstance();
         const repo = new AuthRepository(databaseClient);
 
-        const syncBattlenetMembersToUserUsecase = SyncBattlenetMembersToUserUsecaseFactory.make(token);
+        const syncBattlenetMembersToUserUsecase = SyncBattlenetMembersToUserUsecaseFactory.make();
         const syncMembersToNewUserUseCase = SyncMembersToNewUserUseCaseFactory.make();
         const discordApiClient = new DiscordApi();
         const blizzardOAuthService = new BlizzardOauthService();

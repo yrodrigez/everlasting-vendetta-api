@@ -1,13 +1,12 @@
 import { Member } from "@entities/member";
 import { WoWCharacter } from "@entities/wow/wow-character";
+import { findNamespace } from "@infrastructure/environment";
 import { IMemberRepository } from "@repositories/i-member-repository";
+import ITokenRepository from "@repositories/i-token-repository";
 import { IWowCharacterService } from "@repositories/i-wow-character-service";
+import pLimit from "p-limit";
 import { IWowGuildService } from "src/domain/services/i-wow-guild-service";
 import { createLogger } from "src/infrastructure/logging/logger";
-import pLimit from "p-limit";
-
-const REALMS = ["spineshatter", "living-flame"];
-const GUILD_NAMES = ["everlasting-vendetta"];
 
 export class GetGuildRosterUseCase {
     private readonly logger = createLogger("GetGuildRosterUseCase");
@@ -16,16 +15,26 @@ export class GetGuildRosterUseCase {
     constructor(
         private readonly wowGuildService: IWowGuildService,
         private readonly characterRepository: IMemberRepository,
-        private readonly wowCharacterService: IWowCharacterService
+        private readonly wowCharacterService: IWowCharacterService,
+        private readonly tokenRepository: ITokenRepository,
+        private readonly realms: { slug: string }[],
+        private readonly guildNames: string[],
     ) { }
 
     async execute(): Promise<WoWCharacter[]> {
+        const token = await this.tokenRepository.getCurrentToken();
+        const accessToken = token.access_token;
         const guildMembers = (
             await Promise.all(
-                REALMS.flatMap((realmSlug) =>
-                    GUILD_NAMES.map(async (guildSlug) => {
+                this.realms.flatMap(({ slug: realmSlug }) =>
+                    this.guildNames.map(async (guildSlug) => {
                         try {
-                            const roster = await this.wowGuildService.getGuildRoster(realmSlug, guildSlug)
+
+                            const roster = await this.wowGuildService.getGuildRoster(
+                                realmSlug,
+                                guildSlug,
+                                accessToken
+                            );
                             return roster.members.map((m) => ({
                                 realmSlug: m.realm.slug,
                                 name: m.name
@@ -45,14 +54,14 @@ export class GetGuildRosterUseCase {
         const freshnessWindowMs = 2 * 24 * 60 * 60 * 1000
         const now = Date.now()
 
-        const namesByRealm = REALMS.reduce((acc, realm) => {
-            acc[realm] = [...new Set(guildMembers.filter(m => m.realmSlug === realm).map(m => m.name))]
+        const namesByRealm = this.realms.reduce((acc, { slug: realmSlug }) => {
+            acc[realmSlug] = [...new Set(guildMembers.filter(m => m.realmSlug === realmSlug).map(m => m.name))]
             return acc
         }, {} as Record<string, string[]>)
 
         const storedByKey = new Map<string, Member>()
         await Promise.all(
-            REALMS.map(async (realmSlug) => {
+            this.realms.map(async ({ slug: realmSlug }) => {
                 const characterNames = namesByRealm[realmSlug] ?? []
                 if (characterNames.length === 0) return
 
@@ -95,7 +104,7 @@ export class GetGuildRosterUseCase {
             }
         }
 
-        const fetched = await this.fetchCharactersWithAvatars(toFetch);
+        const fetched = await this.fetchCharactersWithAvatars(toFetch, accessToken);
 
         await this.updateFetchedMembers(fetched);
 
@@ -119,7 +128,8 @@ export class GetGuildRosterUseCase {
     }
 
     private async fetchCharactersWithAvatars(
-        members: Array<{ realmSlug: string; name: string }>
+        members: Array<{ realmSlug: string; name: string }>,
+        accessToken: string
     ): Promise<WoWCharacter[]> {
         const results = await Promise.all(
             members.map((m) =>
@@ -127,7 +137,8 @@ export class GetGuildRosterUseCase {
                     try {
                         return await this.wowCharacterService.getCharacterWithAvatar(
                             m.realmSlug,
-                            encodeURIComponent(m.name.toLowerCase())
+                            encodeURIComponent(m.name.toLowerCase()),
+                            accessToken,
                         )
                     } catch (error) {
                         this.logger.error(

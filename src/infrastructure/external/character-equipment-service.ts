@@ -3,9 +3,9 @@ import type {
 	ICharacterEquipmentService,
 } from "@repositories/gearscore/i-character-equipment-service.ts";
 import { BlizzardApiError } from "../../domain/errors/blizzard-api-error.ts";
+import { findNamespace } from "@infrastructure/environment.ts";
 
 const LOCALE = "en_US";
-const NAMESPACE = "profile-classic1x-eu";
 
 export class CharacterEquipmentService implements ICharacterEquipmentService {
 	private readonly baseUrl = "https://eu.api.blizzard.com";
@@ -23,9 +23,13 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 
 		const url =
 			`${this.baseUrl}/profile/wow/character/${realm}/${encodeURIComponent(characterName)}/equipment`;
+		const namespace = findNamespace(realm, 'profile');
+		if (!namespace) {
+			throw new Error(`Namespace not found for realm: ${realm}`);
+		}
 		const query = new URLSearchParams({
 			locale: LOCALE,
-			namespace: NAMESPACE,
+			namespace,
 		});
 
 		const response = await fetch(`${url}?${query}`, {

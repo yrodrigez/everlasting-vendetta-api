@@ -16,10 +16,11 @@ export class CharacterAvatarUseCaseFactory {
             blizzardOauthService,
         );
 
+        const wowCharacterService = new WowCharacterService();
         const useCase = new GetCharacterAvatarUseCase(
             memberRepository,
             tokenRepository,
-            (accessToken) => new WowCharacterService(accessToken),
+            wowCharacterService,
         );
 
         return new CharacterAvatarController(useCase);

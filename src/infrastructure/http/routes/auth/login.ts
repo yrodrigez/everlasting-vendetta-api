@@ -18,6 +18,7 @@ import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 import { WowAccountRepository } from "src/infrastructure/repositories/wow-account-repository";
 import { UserContextService } from "src/domain/services/user-context-service";
 import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
+import { en } from "zod/locales";
 
 const loginRoute = new Hono();
 
@@ -49,8 +50,9 @@ loginRoute.post(createRoute<LoginInput>(
         );
 
         if (provider === 'bnet' || provider === 'bnet_oauth') {
-            const wowAccountService = new WowAccountService(access_token);
-            const characterService = new WowCharacterService(access_token);
+            const environment = getEnvironment()
+            const wowAccountService = new WowAccountService(environment.profileNamespaces);
+            const characterService = new WowCharacterService();
             const battlenetAuthUseCase = new AuthenticateWithBattleNetUseCase(
                 blizzardOAuthService,
                 authRepository,
@@ -60,6 +62,7 @@ loginRoute.post(createRoute<LoginInput>(
                 tokenService,
                 userContextService,
                 wowAccountRepository,
+                environment.currentRealms.map(r => ({ slug: r.slug })),
             )
             return await battlenetAuthUseCase.execute({
                 bnetToken: access_token,

@@ -43,6 +43,7 @@ export class SyncBattlenetMembersToUserUsecase {
                     const character = await this.charactersService.getCharacterWithAvatar(
                         char.realm.slug,
                         char.name,
+                        bnetToken,
                     );
                     this.logger.info(`Fetched character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
 

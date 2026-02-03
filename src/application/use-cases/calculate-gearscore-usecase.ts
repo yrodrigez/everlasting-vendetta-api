@@ -113,9 +113,7 @@ export class CalculateGearScoreUseCase {
                 this.limit(async () => {
                     const details = await this.itemService.getItem(
                         item.id,
-                        token,
-                        true,
-                        item.fetchUrl,
+                        forceRefresh || (1769455333245 + 1000 * 60 * 24 * 30 > Date.now()), // Force refresh if cache is older than 30 days
                     );
 
                     // Map quality string to enum

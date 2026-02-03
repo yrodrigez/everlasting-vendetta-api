@@ -31,7 +31,8 @@ characterRoutes.get(
         async ({ query, user }) => {
             try {
 
-                const realmSlug = query.realmSlug;
+                const realmSlug = query.realmSlug || 'living-flame';
+                
                 // Initialize database client
                 const databaseClient = DatabaseClientFactory.getInstance();
 
@@ -54,7 +55,7 @@ characterRoutes.get(
                 }
 
                 // Initialize services with Blizzard token
-                const wowCharacterService = new WowCharacterService(blizzardToken.access_token);
+                const wowCharacterService = new WowCharacterService();
 
                 // Initialize repositories
                 const userRepository = new UserRepository(databaseClient);
@@ -71,7 +72,8 @@ characterRoutes.get(
                 }
                 const characters = await getUserCharacters.execute({
                     userId: userId,
-                    realmSlug
+                    realmSlug,
+                    accessToken: blizzardToken.access_token,
                 });
 
                 return { characters };

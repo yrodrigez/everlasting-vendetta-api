@@ -10,6 +10,7 @@ export default class GetFullCharactersUsecase {
 
     async execute(
         characters: { realmSlug: string; name: string, level: number }[],
+        accessToken: string,
     ): Promise<WoWCharacter[]> {
         const result = await Promise.all(
             characters.map(async (char) => {
@@ -17,10 +18,11 @@ export default class GetFullCharactersUsecase {
                     if (char.level < 10) {
                         return char;
                     }
-
+                    
                     const character = await this.characterService.getCharacterWithAvatar(
                         char.realmSlug,
                         char.name,
+                        accessToken,
                     );
                     this.logger.info(`Fetched character ${char.name} on realm ${char.realmSlug} with level ${character.level}`);
 

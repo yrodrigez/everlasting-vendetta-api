@@ -17,11 +17,15 @@ export class LinkCharacterUseCaseFactory {
             databaseClient,
             blizzardOauthService,
         );
-        const token = await tokenRepository.getCurrentToken()
-        const characterService = new WowCharacterService(token.access_token);
+        
+        const characterService = new WowCharacterService();
 
         const characterValidationService = new CharacterValidationService(characterService, memberRepository, realmsRepository);
 
-        return new LinkCharacterToUserUseCase(memberRepository, characterValidationService);
+        return new LinkCharacterToUserUseCase(
+            memberRepository, 
+            characterValidationService,
+            tokenRepository,
+        );
     }
 }
