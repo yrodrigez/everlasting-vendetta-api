@@ -58,7 +58,8 @@ export class AuthenticateWithBattleNetUseCase {
 
         const account = await this.wowAccountService.getWoWAccount(bnetToken);
 
-        const accountCharacters = account.wow_accounts.flatMap(acc => acc.characters).filter(x => this.realms.map(({ slug }) => slug).includes(x?.realm?.slug));
+        const allCharacters = account.wow_accounts.flatMap(acc => acc.characters).filter(x => this.realms.map(({ slug }) => slug).includes(x?.realm?.slug));
+        const accountCharacters = [...new Map(allCharacters.map(c => [c.id, c])).values()];
 
         const result = await Promise.all(
             accountCharacters.map(async (char) => {
@@ -91,11 +92,14 @@ export class AuthenticateWithBattleNetUseCase {
                 }
             }));
         const characters = result.filter(Boolean) as WoWCharacter[];
-        this.logger.info(`User ${userId} has ${characters.length} characters from Battle.net account.`);
 
-        await this.memberRepository.upsertMany(
-            characters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, account.id, 'bnet_oauth'))
-        );
+        const uniqueCharacters = [...new Map(characters.map(c => [c.id, c])).values()];
+        this.logger.info(`User ${userId} has ${uniqueCharacters.length} unique characters (${characters.length} total fetched) from Battle.net account.`);
+
+        const members = uniqueCharacters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, account.id, 'bnet_oauth'));
+        const uniqueMembers = [...new Map(members.map(m => [m.id, m])).values()];
+
+        await this.memberRepository.upsertMany(uniqueMembers);
 
         await this.authRepository.storeOauthToken({
             userId,
