@@ -52,7 +52,7 @@ export class ItemService implements IItemService {
 	}
 
 	private isCacheValid(lastUpdated: string): boolean {
-		const threeWeeksInMs = 1000 * 60 * 60 * 24 * 21; // 21 days
+		const threeWeeksInMs = 0//1000 * 60 * 60 * 24 * 21; // 21 days
 		const lastUpdatedTime = new Date(lastUpdated).getTime();
 		const now = new Date().getTime();
 		return now - lastUpdatedTime < threeWeeksInMs;
@@ -85,7 +85,8 @@ export class ItemService implements IItemService {
 		const baseUrl = `https://www.wowhead.com/item=${id}`;
 		const response = await fetch(baseUrl);
 		if (!response.ok) {
-			throw new Error(`Error fetching item display id: '${id}', status: ${response.status}`);
+			console.error(`Error fetching item display id: '${id}', status: ${response.status}`);
+			return 0;
 		}
 		const data = await response.text();
 

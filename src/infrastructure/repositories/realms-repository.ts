@@ -11,6 +11,7 @@ export class RealmsRepository implements IRealmsRepository {
         const { data, error } = await this.database
             .from("realms")
             .select("id, name, slug")
+            .order("created_at", { ascending: false });
 
         if (error) {
             throw new ServiceError({ message: error.message, serviceName: "RealmsRepository" });
