@@ -1,10 +1,18 @@
 export interface CharacterEquipment {
 	readonly characterName: string;
+	readonly characterClass?: string;
 	readonly equippedItems: Array<{
 		readonly itemId: number;
 		readonly inventoryType: string;
 		readonly isEnchanted: boolean;
+		readonly qualityType: string;
 		readonly fetchUrl: string;
+		readonly gems: Array<{
+			readonly id: number;
+			readonly itemId: number;
+			readonly fetchUrl: string;
+			readonly displayString: string;
+		}>;
 	}>;
 }
 

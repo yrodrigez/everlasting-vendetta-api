@@ -47,6 +47,11 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 
 		const data = await response.json() as any;
 
+
+
+
+		const characterClass = data?.character?.playable_class?.name?.toUpperCase() as string | undefined;
+
 		const equippedItems = (data?.equipped_items || []).map((item: any) => {
 			const url = item?.item?.key?.href as string;
 			let fetchUrl: URL | undefined = undefined;
@@ -54,6 +59,25 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 				fetchUrl = new URL(url);
 				fetchUrl.searchParams.set("locale", LOCALE);
 			}
+
+			const gems = item?.enchantments
+				?.filter((e: any) => !e.enchantment_slot?.type && e.enchantment_slot?.id > 0).map((enchantment: any) => {
+					const { source_item } = enchantment
+					const sourceItem = source_item as { key: { href: string }, id: any } | null;
+					const url = sourceItem?.key?.href;
+					let fetchUrl: URL | undefined = undefined;
+					if (url) {
+						fetchUrl = new URL(url);
+						fetchUrl.searchParams.set("locale", LOCALE);
+					}
+					return {
+						id: parseInt(enchantment?.enchantment_id ?? 0, 10),
+						itemId: parseInt(sourceItem?.id ?? 0, 10),
+						displayString: enchantment.display_string,
+						fetchUrl,
+					};
+				})
+				.filter((gem: any) => gem.itemId > 0);
 			return {
 				itemId: parseInt(item?.item?.id ?? 0, 10),
 				inventoryType: `INVTYPE_${item.inventory_type?.type}`,
@@ -61,12 +85,15 @@ export class CharacterEquipmentService implements ICharacterEquipmentService {
 					item.enchantments?.filter(
 						(e: any) => e.enchantment_slot?.type === "PERMANENT",
 					).length > 0,
+				qualityType: (item?.quality?.type ?? "COMMON").toUpperCase(),
 				fetchUrl,
+				gems
 			};
 		});
 
 		return {
 			characterName,
+			characterClass,
 			equippedItems,
 		};
 	}

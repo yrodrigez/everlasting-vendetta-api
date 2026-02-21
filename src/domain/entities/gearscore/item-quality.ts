@@ -5,6 +5,8 @@ export enum ItemQuality {
 	RARE = 3,
 	EPIC = 4,
 	LEGENDARY = 5,
+	ARTIFACT = 6,
+	HEIRLOOM = 7,
 }
 
 export const ITEM_QUALITY_NAMES: Record<ItemQuality, string> = {
@@ -14,4 +16,6 @@ export const ITEM_QUALITY_NAMES: Record<ItemQuality, string> = {
 	[ItemQuality.RARE]: "RARE",
 	[ItemQuality.EPIC]: "EPIC",
 	[ItemQuality.LEGENDARY]: "LEGENDARY",
+	[ItemQuality.ARTIFACT]: "ARTIFACT",
+	[ItemQuality.HEIRLOOM]: "HEIRLOOM",
 };

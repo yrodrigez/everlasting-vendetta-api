@@ -1,4 +1,4 @@
-import { ICharacterEquipmentService } from "@repositories/gearscore/i-character-equipment-service.ts";
+import { CharacterEquipment, ICharacterEquipmentService } from "@repositories/gearscore/i-character-equipment-service.ts";
 import { IGearScoreCacheRepository } from "@repositories/gearscore/i-gearscore-cache-repository.ts";
 import { IItemService } from "@repositories/gearscore/i-item-service.ts";
 import ITokenRepository from "@repositories/i-token-repository.ts";
@@ -61,7 +61,6 @@ export class CalculateGearScoreUseCase {
             equipments.map((equipment) =>
                 this.calculateForCharacter(
                     equipment,
-                    token.access_token,
                     request.forceRefresh || false,
                 )
             ),
@@ -69,15 +68,16 @@ export class CalculateGearScoreUseCase {
     }
 
     private async calculateForCharacter(
-        equipment: { characterName: string; equippedItems: any[] },
-        token: string,
+        equipment: { characterName: string; characterClass?: string; equippedItems: CharacterEquipment['equippedItems'] },
         forceRefresh: boolean,
     ): Promise<GearScore> {
         const rawItems = equipment.equippedItems.map((item) => ({
             id: item.itemId,
             type: item.inventoryType,
             isEnchanted: item.isEnchanted,
+            qualityType: item.qualityType,
             fetchUrl: item.fetchUrl?.toString(),
+            gems: item.gems,
         }));
 
         // Check if character is fully enchanted
@@ -107,20 +107,19 @@ export class CalculateGearScoreUseCase {
 
         this.logger.info(`NOT CACHED: Calculating gear score for character: ${equipment.characterName}`);
 
-        // Fetch item details and calculate
+        // Fetch item details from WoWHead (Classic TBC API doesn't include item level)
         const completeItems = await Promise.all(
             rawItems.map(async (item) =>
                 this.limit(async () => {
                     const details = await this.itemService.getItem(
                         item.id,
-                        forceRefresh || (1769455333245 + 1000 * 60 * 24 * 30 > Date.now()), // Force refresh if cache is older than 30 days
+                        forceRefresh || (1769455333245 + 1000 * 60 * 24 * 30 > Date.now()),
                     );
 
-                    // Map quality string to enum
-                    const qualityType = details.quality.type.toUpperCase();
-                    const quality =
-                        ItemQuality[qualityType as keyof typeof ItemQuality] ||
-                        ItemQuality.COMMON;
+                    // Use quality from Blizzard API (more reliable), fall back to WoWHead
+                    const apiQuality = ItemQuality[item.qualityType as keyof typeof ItemQuality];
+                    const wowheadQuality = ItemQuality[details.quality.type.toUpperCase() as keyof typeof ItemQuality];
+                    const quality = apiQuality ?? wowheadQuality ?? ItemQuality.COMMON;
 
                     return createEquippedItem(
                         item.id,
@@ -128,6 +127,7 @@ export class CalculateGearScoreUseCase {
                         item.isEnchanted,
                         details.itemLevel,
                         quality,
+                        item.gems || [],
                     );
                 })
             ),
@@ -141,12 +141,18 @@ export class CalculateGearScoreUseCase {
                 item.inventoryType.startsWith("INVTYPE_"),
         );
 
-        // Calculate gear score
-        const score = this.calculator.calculateTotalGearScore(validItems);
+        // DEBUG: log each item's score breakdown
+        for (const item of validItems) {
+            const itemScore = this.calculator.calculateItemScore(item, equipment.characterClass);
+            this.logger.info(`[DEBUG] ${item.inventoryType} id=${item.id} ilvl=${item.itemLevel} quality=${item.quality} enchanted=${item.isEnchanted} gems=${item.gems?.length ?? 0} => score=${itemScore}`);
+        }
+
+        // Calculate gear score with class token for class-specific adjustments (e.g. Hunter)
+        const score = this.calculator.calculateTotalGearScore(validItems, equipment.characterClass);
         const color = this.calculator.getColorForGearScore(score);
 
         // Save to cache
-        await this.cacheRepository.save(hash, score, color);
+        //await this.cacheRepository.save(hash, score, color);
 
         return createGearScore(
             equipment.characterName,
