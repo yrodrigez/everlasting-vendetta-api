@@ -151,6 +151,30 @@ export class CalculateGearScoreUseCase {
         const score = this.calculator.calculateTotalGearScore(validItems, equipment.characterClass);
         const color = this.calculator.getColorForGearScore(score);
 
+        if (score === 0) {
+            this.logger.warn(`Calculated gear score of 0 for character: ${equipment.characterName}. This may indicate an issue with item data fetching or calculation.`);
+            if (cachedScore) {
+                return createGearScore(
+                    equipment.characterName,
+                    cachedScore.score,
+                    cachedScore.color,
+                    hash,
+                    isFullEnchanted,
+                );
+            }
+        }
+
+        if (score < (cachedScore?.score ?? 0) && cachedScore && !forceRefresh) {
+            this.logger.warn(`Calculated gear score of ${score} is less than cached score of ${cachedScore?.score} for character: ${equipment.characterName}. This may indicate an issue with item data fetching or calculation.`);
+            return createGearScore(
+                equipment.characterName,
+                cachedScore?.score ?? score,
+                cachedScore?.color,
+                hash,
+                isFullEnchanted,
+            );
+        }
+
         // Save to cache
         await this.cacheRepository.save(hash, score, color);
 
