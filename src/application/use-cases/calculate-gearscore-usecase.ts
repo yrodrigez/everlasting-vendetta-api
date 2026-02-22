@@ -113,7 +113,7 @@ export class CalculateGearScoreUseCase {
                 this.limit(async () => {
                     const details = await this.itemService.getItem(
                         item.id,
-                        forceRefresh || (1769455333245 + 1000 * 60 * 24 * 30 > Date.now()),
+                        forceRefresh,
                     );
 
                     // Use quality from Blizzard API (more reliable), fall back to WoWHead
@@ -152,7 +152,7 @@ export class CalculateGearScoreUseCase {
         const color = this.calculator.getColorForGearScore(score);
 
         // Save to cache
-        //await this.cacheRepository.save(hash, score, color);
+        await this.cacheRepository.save(hash, score, color);
 
         return createGearScore(
             equipment.characterName,
