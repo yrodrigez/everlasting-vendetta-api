@@ -19,7 +19,7 @@ export class ItemService implements IItemService {
 		}
 
 		const cachedItem = await this.getItemFromDatabase(itemId);
-		if (cachedItem && this.isCacheValid(cachedItem.lastUpdated)) {
+		if (cachedItem && this.isCacheValid(cachedItem.lastUpdated) && cachedItem.details.id) {
 			return cachedItem.details;
 		}
 
@@ -147,7 +147,7 @@ export class ItemService implements IItemService {
 			icon: `https://wow.zamimg.com/images/wow/icons/medium/${data.icon}.jpg`,
 			level: itemLevel,
 			name: data.name,
-			id: data.id ?? null,
+			id: data.id ?? itemId,
 			tooltip: data.tooltip,
 			itemLevel: itemLevel,
 			quality: {
