@@ -52,10 +52,10 @@ export class ItemService implements IItemService {
 	}
 
 	private isCacheValid(lastUpdated: string): boolean {
-		const threeWeeksInMs = 0//1000 * 60 * 60 * 24 * 21; // 21 days
+		const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 180; // 180 days
 		const lastUpdatedTime = new Date(lastUpdated).getTime();
 		const now = new Date().getTime();
-		return now - lastUpdatedTime < threeWeeksInMs;
+		return (now - lastUpdatedTime) < CACHE_TTL_MS;
 	}
 
 	private async fetchNewItem(
@@ -105,7 +105,7 @@ export class ItemService implements IItemService {
 		const url =
 			`https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=${env}&locale=0`;
 		const response = await fetch(url);
-		
+
 		if (!response.ok && env === 4) {
 			// retry with 5 for TBC items
 			return this.fetchWoWHeadItem(itemId, 5);
