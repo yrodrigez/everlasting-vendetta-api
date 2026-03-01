@@ -19,7 +19,7 @@ export interface GetWowCharacterOutput {
 
 
 const CACHE_TTL_MS = 1000 * 60 * 15; // 15 minutes
-
+const cache = new Map<string, { character: WoWCharacter; timestamp: number }>();
 export class GetWowCharacterUseCase {
     private readonly logger = createLogger("GetWowCharacterUseCase");
 
@@ -30,8 +30,22 @@ export class GetWowCharacterUseCase {
     ) { }
 
     async execute(input: GetWowCharacterInput): Promise<GetWowCharacterOutput> {
-        const realmSlug = input.realmSlug.trim().toLowerCase();
-        const characterName = input.characterName.trim();
+        const realmSlug = decodeURIComponent(input.realmSlug).trim().toLowerCase();
+        const characterName = decodeURIComponent(input.characterName).trim();
+
+        const cacheKey = `${realmSlug}:${characterName}`;
+        const cached = cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS && !input.forceRefresh) {
+            this.logger.info("Serving character from cache", {
+                characterId: cached.character.id,
+            });
+
+            return {
+                character: cached.character,
+                source: "database",
+                updated: false,
+            };
+        }
 
         this.logger.info("Fetching character", {
             realmSlug,
@@ -95,6 +109,8 @@ export class GetWowCharacterUseCase {
             updated = true;
         }
 
+
+        cache.set(cacheKey, { character: fetchedCharacter, timestamp: Date.now() });
 
         return {
             character: fetchedCharacter,

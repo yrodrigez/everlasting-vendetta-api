@@ -147,7 +147,7 @@ export class ItemService implements IItemService {
 			icon: `https://wow.zamimg.com/images/wow/icons/medium/${data.icon}.jpg`,
 			level: itemLevel,
 			name: data.name,
-			id: data.id,
+			id: data.id ?? null,
 			tooltip: data.tooltip,
 			itemLevel: itemLevel,
 			quality: {

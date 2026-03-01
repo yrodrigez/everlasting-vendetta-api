@@ -5,14 +5,20 @@ import { WoWHeadParser } from "./wow-head-parser";
 export class WoWHeadService implements IWoWHeadService {
     constructor() { }
 
-    async fetchItemDetails(itemId: number): Promise<WowHeadItemOutput> {
-        const url = `https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=4&locale=0`;
+    async fetchItemDetails(itemId: number, env: number = 4): Promise<WowHeadItemOutput> {
+        const url = `https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=${env}&locale=0`;
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
                 'Cache-Control': 'max-age=86400', // 24 hour cache
             },
         })
+
+        if (!response.ok && env === 4) {
+            // retry with 5 for TBC items
+            return this.fetchItemDetails(itemId, 5);
+        }
+
         if (!response.ok) {
             throw new Error(`WoWHeadService::fetchItemDetails - Error fetching item details for itemId ${itemId}: ${response.status} ${response.statusText}`);
         }

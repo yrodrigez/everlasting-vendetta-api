@@ -4,6 +4,7 @@ import authRoutes from "./auth";
 import { gearscoreRoutes } from "./gearscore-route";
 import realmsRoutes from "./realms";
 import characterRoutes from "./characters";
+import { raidRoutes } from "./raid";
 
 const routes = new Hono();
 
@@ -22,5 +23,6 @@ routes.route("/auth", authRoutes);
 routes.route("/gearscore", gearscoreRoutes);
 routes.route("/realms", realmsRoutes);
 routes.route("/auth/characters", characterRoutes);
+routes.route("/raids", raidRoutes);
 
 export { routes };
