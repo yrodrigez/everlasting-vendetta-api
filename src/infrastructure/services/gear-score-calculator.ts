@@ -3,25 +3,14 @@ import { INVENTORY_TYPE_INFO } from "@entities/gearscore/inventory-type.ts";
 import { ItemQuality } from "@entities/gearscore/item-quality.ts";
 import type { GearScoreColor } from "@entities/gearscore/gear-score.ts";
 
-// GearScoreLite formula tables
-// Table A: items with ilvl > 120, Table B: items with ilvl <= 120
+// Single linear formula table (no hard item level breakpoint).
 type FormulaCoefficients = { A: number; B: number };
 
-const GS_FORMULA: {
-	A: Partial<Record<ItemQuality, FormulaCoefficients>>;
-	B: Partial<Record<ItemQuality, FormulaCoefficients>>;
-} = {
-	A: {
-		[ItemQuality.EPIC]:     { A: 91.45,  B: 0.65 },
-		[ItemQuality.RARE]:     { A: 81.375, B: 0.8125 },
-		[ItemQuality.UNCOMMON]: { A: 73.0,   B: 1.0 },
-	},
-	B: {
-		[ItemQuality.EPIC]:     { A: 26.0,  B: 1.2 },
-		[ItemQuality.RARE]:     { A: 0.75,  B: 1.8 },
-		[ItemQuality.UNCOMMON]: { A: 8.0,   B: 2.0 },
-		[ItemQuality.COMMON]:   { A: 0.0,   B: 2.25 },
-	},
+const GS_FORMULA: Partial<Record<ItemQuality, FormulaCoefficients>> = {
+	[ItemQuality.EPIC]:     { A: 26.0, B: 1.2 },
+	[ItemQuality.RARE]:     { A: 0.75, B: 1.8 },
+	[ItemQuality.UNCOMMON]: { A: 8.0, B: 2.0 },
+	[ItemQuality.COMMON]:   { A: 0.0, B: 2.25 },
 };
 
 const BRACKET_SIZE = 400;
@@ -32,7 +21,6 @@ const GS_GEM_SCORE_PER_GEM = 5;
 
 const HUNTER_MELEE_SLOTS = [
 	"INVTYPE_2HWEAPON",
-	"INVTYPE_TWOHWEAPON",
 	"INVTYPE_WEAPONMAINHAND",
 	"INVTYPE_WEAPONOFFHAND",
 	"INVTYPE_WEAPON",
@@ -69,9 +57,7 @@ export class GearScoreCalculator {
 			itemLevel = 187.05;
 		}
 
-		// Pick formula table based on item level threshold
-		const formulaTable = itemLevel > 120 ? GS_FORMULA.A : GS_FORMULA.B;
-		const coefficients = formulaTable[rarity as ItemQuality];
+		const coefficients = GS_FORMULA[rarity as ItemQuality];
 		if (!coefficients) {
 			return 0;
 		}
