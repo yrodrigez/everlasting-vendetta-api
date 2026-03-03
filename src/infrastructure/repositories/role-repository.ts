@@ -11,16 +11,17 @@ export class RoleRepository implements IRoleRepository {
     async findByMemberId(userId: string): Promise<string[]> {
         this.logger.debug(`Fetching roles for user ID: ${userId}`);
         const [{ data: memberRoles, error: errorMembers }, { data: userRoles, error: userError }] = await Promise.all([
-            await this.database
+            this.database
                 .from("ev_member_role")
                 .select('role, ev_member!inner(user_id)')
                 .eq('ev_member.user_id', userId)
                 .overrideTypes<{ role: string }[]>(),
-            await this.database.from("ev_member_role")
+            this.database
+                .from("ev_member_role")
                 .select('role')
                 .eq('user_id', userId)
                 .overrideTypes<{ role: string }[]>(),
-        ])
+        ]);
 
         if (errorMembers || userError) {
             this.logger.error(
