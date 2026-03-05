@@ -5,11 +5,13 @@ import {
     SendAnalyticsEventInput,
 } from "@http/validators/schemas/analytics-schema";
 import { DatabaseClientFactory } from "@database/database-client-factory";
+import { authMiddleware } from "@http/middleware/auth.middleware";
 
 const sendEventRoute = new Hono();
 
 sendEventRoute.post(
     "/",
+    authMiddleware,
     createRoute<SendAnalyticsEventInput>(
         {
             functionName: "analytics-send-event",
