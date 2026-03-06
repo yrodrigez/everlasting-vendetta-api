@@ -6,12 +6,14 @@ import { ITokenService } from "src/domain/services/i-token-service";
 import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { OAuthProvider } from "src/domain/types/auth-types";
 import { Provider } from "@dto/auth/provider";
+import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export class RefreshUserSessionTokenUseCase {
     constructor(
         private readonly authRepository: IAuthRepository,
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
+        private readonly eventTracker: IEventTrackingService,
     ) { }
 
     async execute({ ipAddress, refreshToken, userAgent }: RefreshTokenInput): Promise<RefreshTokenOutput> {
@@ -87,6 +89,15 @@ export class RefreshUserSessionTokenUseCase {
                 isGuildMember: userContext.isGuildMember
             } as Partial<GenerateTokenPairInput>);
 
+            await this.eventTracker.track({
+                event_name: 'token_refresh',
+                event_type: 'auth',
+                user_id: verifiedToken.sub,
+                metadata: { provider: verifiedToken.provider, was_rotated: true },
+                ip_address: ipAddress || undefined,
+                user_agent: userAgent || undefined,
+            });
+
             return {
                 accessToken: newAccessToken.token,
                 accessTokenExpiry: newAccessToken.expiry,
@@ -161,6 +172,15 @@ export class RefreshUserSessionTokenUseCase {
                 refreshTokenJti: resignedRefresh.jti
             };
         }
+
+        await this.eventTracker.track({
+            event_name: 'token_refresh',
+            event_type: 'auth',
+            user_id: verifiedToken.sub,
+            metadata: { provider: verifiedToken.provider, was_rotated: false },
+            ip_address: ipAddress || undefined,
+            user_agent: userAgent || undefined,
+        });
 
         return {
             accessToken: newTokenPair.accessToken,

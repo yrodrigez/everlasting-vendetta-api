@@ -5,6 +5,7 @@ import { revokeSchema, RevokeInput } from "@http/validators/schemas/auth-schema"
 import { RevokeTokenUseCase } from "@use-cases/revoke-token-usecase";
 import { Hono } from "hono";
 import { AuthRepository } from "src/infrastructure/repositories/auth-repository";
+import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
 
 const revokeRoute = new Hono();
 
@@ -25,7 +26,8 @@ revokeRoute.post(
 
             const database = DatabaseClientFactory.getInstance();
             const authRepository = new AuthRepository(database);
-            const useCase = new RevokeTokenUseCase(authRepository);
+            const eventTracker = new EventTrackingService();
+            const useCase = new RevokeTokenUseCase(authRepository, eventTracker);
 
             const result = await useCase.execute({
                 userId: user.userId,

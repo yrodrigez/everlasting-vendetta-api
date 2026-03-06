@@ -5,6 +5,7 @@ import { IAuthRepository } from "@repositories/i-auth-repository";
 import { ITokenService } from "src/domain/services/i-token-service";
 import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
+import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export class AuthenticateWithDiscordUseCase {
     private readonly logger = createLogger('AuthenticateWithDiscordUseCase');
@@ -13,6 +14,7 @@ export class AuthenticateWithDiscordUseCase {
         private readonly authRepository: IAuthRepository,
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
+        private readonly eventTracker: IEventTrackingService,
     ) { }
 
     async execute({
@@ -38,7 +40,7 @@ export class AuthenticateWithDiscordUseCase {
             const providerUsername = userInfo.username;
 
             // Find or create user
-            const { userId } = await this.authRepository.findOrCreateUser({
+            const { userId, isNewUser } = await this.authRepository.findOrCreateUser({
                 provider: PROVIDER,
                 providerUserId,
                 username: providerUsername
@@ -91,6 +93,26 @@ export class AuthenticateWithDiscordUseCase {
 
             this.logger.info(`User ${userId} authenticated successfully with Discord. Issued new token pair.`);
 
+            if (isNewUser) {
+                await this.eventTracker.track({
+                    event_name: 'account_created',
+                    event_type: 'auth',
+                    user_id: userId,
+                    metadata: { provider: 'discord' },
+                    ip_address: ipAddress,
+                    user_agent: userAgent,
+                });
+            }
+
+            await this.eventTracker.track({
+                event_name: 'login_success',
+                event_type: 'auth',
+                user_id: userId,
+                metadata: { provider: 'discord' },
+                ip_address: ipAddress,
+                user_agent: userAgent,
+            });
+
             return {
                 refreshToken: tokenPair.refreshToken,
                 accessToken: tokenPair.accessToken,
@@ -99,6 +121,15 @@ export class AuthenticateWithDiscordUseCase {
             };
         } catch (error) {
             this.logger.error('Discord authentication failed', error);
+
+            await this.eventTracker.track({
+                event_name: 'login_failure',
+                event_type: 'auth',
+                metadata: { provider: 'discord', reason: error instanceof AuthError ? error.message : 'Unknown error' },
+                ip_address: ipAddress,
+                user_agent: userAgent,
+            });
+
             if (error instanceof AuthError) {
                 throw error;
             }

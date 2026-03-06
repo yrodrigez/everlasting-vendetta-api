@@ -2,6 +2,7 @@ import { IAuthRepository } from "@repositories/i-auth-repository";
 import { AuthError } from "@errors/auth-error";
 import { TokenRevocationReason } from "src/domain/types/auth-types";
 import { createLogger } from "src/infrastructure/logging";
+import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export interface RevokeTokenInput {
     userId: string;
@@ -17,7 +18,8 @@ export interface RevokeTokenOutput {
 export class RevokeTokenUseCase {
     private readonly logger = createLogger('RevokeTokenUseCase');
     constructor(
-        private readonly authRepository: IAuthRepository
+        private readonly authRepository: IAuthRepository,
+        private readonly eventTracker: IEventTrackingService,
     ) { }
 
     async execute(input: RevokeTokenInput): Promise<RevokeTokenOutput> {
@@ -57,6 +59,13 @@ export class RevokeTokenUseCase {
         await this.authRepository.revokeRefreshToken({
             tokenJti,
             reason
+        });
+
+        await this.eventTracker.track({
+            event_name: 'token_revoke',
+            event_type: 'auth',
+            user_id: userId,
+            metadata: { reason },
         });
 
         return {

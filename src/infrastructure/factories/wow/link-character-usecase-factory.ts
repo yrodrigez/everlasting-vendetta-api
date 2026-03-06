@@ -6,6 +6,7 @@ import { BlizzardTokenRepository } from "@infrastructure/repositories/blizzard-t
 import { MemberRepository } from "@infrastructure/repositories/member-repository";
 import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
 import { LinkCharacterToUserUseCase } from "@use-cases/link-character-to-user";
+import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
 
 export class LinkCharacterUseCaseFactory {
     static async make() {
@@ -22,10 +23,13 @@ export class LinkCharacterUseCaseFactory {
 
         const characterValidationService = new CharacterValidationService(characterService, memberRepository, realmsRepository);
 
+        const eventTracker = new EventTrackingService();
+
         return new LinkCharacterToUserUseCase(
-            memberRepository, 
+            memberRepository,
             characterValidationService,
             tokenRepository,
+            eventTracker,
         );
     }
 }

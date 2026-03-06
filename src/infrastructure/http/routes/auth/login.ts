@@ -18,7 +18,7 @@ import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 import { WowAccountRepository } from "src/infrastructure/repositories/wow-account-repository";
 import { UserContextService } from "src/domain/services/user-context-service";
 import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
-import { en } from "zod/locales";
+import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
 
 const loginRoute = new Hono();
 
@@ -49,6 +49,8 @@ loginRoute.post(createRoute<LoginInput>(
             memberRepository,
         );
 
+        const eventTracker = new EventTrackingService();
+
         if (provider === 'bnet' || provider === 'bnet_oauth') {
             const environment = getEnvironment()
             const wowAccountService = new WowAccountService(environment.profileNamespaces);
@@ -63,6 +65,7 @@ loginRoute.post(createRoute<LoginInput>(
                 userContextService,
                 wowAccountRepository,
                 environment.currentRealms.map(r => ({ slug: r.slug })),
+                eventTracker,
             )
             return await battlenetAuthUseCase.execute({
                 bnetToken: access_token,
@@ -78,6 +81,7 @@ loginRoute.post(createRoute<LoginInput>(
                 authRepository,
                 tokenService,
                 userContextService,
+                eventTracker,
             );
             return await discordAuthUseCase.execute({
                 discordToken: access_token,

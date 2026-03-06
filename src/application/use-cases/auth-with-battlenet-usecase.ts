@@ -12,6 +12,7 @@ import { ITokenService } from "src/domain/services/i-token-service";
 import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
 import { IWowAccountRepository } from "@repositories/i-wow-account-repository";
+import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export class AuthenticateWithBattleNetUseCase {
     private readonly logger = createLogger('AuthenticateWithBattleNetUseCase');
@@ -24,7 +25,8 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
         private readonly wowAccountRepository: IWowAccountRepository,
-        private readonly realms: { slug: string }[]
+        private readonly realms: { slug: string }[],
+        private readonly eventTracker: IEventTrackingService,
     ) { }
 
     async execute({
@@ -50,7 +52,7 @@ export class AuthenticateWithBattleNetUseCase {
         });
         const providerUserId = id.toString();
         const providerUsername = battletag;
-        const { userId } = await this.authRepository.findOrCreateUser({
+        const { userId, isNewUser } = await this.authRepository.findOrCreateUser({
             provider: PROVIDER,
             providerUserId,
             username: providerUsername
@@ -143,6 +145,27 @@ export class AuthenticateWithBattleNetUseCase {
         });
 
         this.logger.info(`User ${userId} authenticated successfully with Battle.net. Issued new token pair.`);
+
+        if (isNewUser) {
+            await this.eventTracker.track({
+                event_name: 'account_created',
+                event_type: 'auth',
+                user_id: userId,
+                metadata: { provider: 'battlenet' },
+                ip_address: ipAddress,
+                user_agent: userAgent,
+            });
+        }
+
+        await this.eventTracker.track({
+            event_name: 'login_success',
+            event_type: 'auth',
+            user_id: userId,
+            metadata: { provider: 'battlenet' },
+            ip_address: ipAddress,
+            user_agent: userAgent,
+        });
+
         return {
             refreshToken: tokenPair.refreshToken,
             accessToken: tokenPair.accessToken,

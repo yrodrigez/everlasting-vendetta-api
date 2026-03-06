@@ -12,6 +12,7 @@ import { JWTTokenService } from "src/infrastructure/security/jwt-token-service";
 import { UserContextService } from "src/domain/services/user-context-service";
 import { RealmsRepository } from "@infrastructure/repositories/realms-repository";
 import { MemberRepository } from "@infrastructure/repositories/member-repository";
+import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
 
 const refreshRoute = new Hono();
 refreshRoute.post(createRoute<RefreshInput>(
@@ -39,10 +40,12 @@ refreshRoute.post(createRoute<RefreshInput>(
             realmsRepository,
             memberRepository,
         );
+        const eventTracker = new EventTrackingService();
         const usecase = new RefreshUserSessionTokenUseCase(
             authRepository,
             tokenService,
             userContextService,
+            eventTracker,
         )
 
         const newTokenPair = await usecase.execute({

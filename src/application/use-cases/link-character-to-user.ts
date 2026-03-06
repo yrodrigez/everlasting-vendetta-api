@@ -3,6 +3,7 @@ import { Member, MemberCharacter } from "@entities/member";
 import { createLogger } from "@infrastructure/logging";
 import { IMemberRepository } from "@repositories/i-member-repository";
 import ITokenRepository from "@repositories/i-token-repository";
+import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 const logger = createLogger('LinkCharacterToUserUseCase');
 
@@ -11,6 +12,7 @@ export class LinkCharacterToUserUseCase {
         private readonly memberRepository: IMemberRepository,
         private readonly characterValidationService: ICharacterValidationService,
         private readonly tokenRepository: ITokenRepository,
+        private readonly eventTracker: IEventTrackingService,
     ) { }
 
     async execute({ userId, characterName, realmSlug }: { userId: string; characterName: string; realmSlug: string; }): Promise<Member[]> {
@@ -52,6 +54,13 @@ export class LinkCharacterToUserUseCase {
 
         await this.memberRepository.upsert(newMember);
         logger.info(`Character ${characterName} linked to user ${userId}`);
+
+        await this.eventTracker.track({
+            event_name: 'character_linked',
+            event_type: 'action',
+            user_id: userId,
+            metadata: { characterName, realmSlug },
+        });
 
         const allLinkedCharacters = await this.memberRepository.findAllByUserId(userId);
 
