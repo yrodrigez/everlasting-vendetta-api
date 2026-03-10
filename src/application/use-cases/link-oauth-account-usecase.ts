@@ -26,7 +26,7 @@ export class LinkOAuthAccountUseCase {
     }: {
         userId: string;
         accessToken: string;
-        provider: string;
+        provider: Provider;
         refreshToken?: string;
         tokenExpiresAt?: Date;
     }) {
@@ -37,7 +37,7 @@ export class LinkOAuthAccountUseCase {
         let providerEmail: string | null = null;
         let metadata: Record<string, any> = {};
 
-        if(provider === 'discord') {
+        if(provider === 'discord_oauth') {
             const discordUserInfo = await this.discordApiClient.getDiscordUserInfo(accessToken);
             if (!discordUserInfo) {
                 throw new Error("Invalid or expired Discord access token");
@@ -64,7 +64,7 @@ export class LinkOAuthAccountUseCase {
 
         const newOauthProvider = await this.authRepository.linkOAuthAccount(new LinkOAuthAccount({
             userId,
-            provider: provider as Provider,
+            provider: provider,
             providerUserId,
             providerEmail: providerEmail || '',
             providerUsername,

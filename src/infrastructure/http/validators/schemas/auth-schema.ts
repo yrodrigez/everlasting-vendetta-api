@@ -1,7 +1,10 @@
+import { Provider } from "../../../../application/dto/auth/provider";
 import { z } from "zod/v3";
 
+const providers: [Provider, ...Provider[]] = ['bnet_oauth', 'discord_oauth'];
+
 export const loginSchema = z.object({
-    provider: z.string().min(1, "Provider is required"),
+    provider: z.enum(providers, { message: "Invalid provider" }),
     access_token: z.string().min(1, "Access token is required"),
     expires_at: z.number().min(Date.now() / 1000, "Expiration time must be in the future"),
     refresh_token: z.string().optional(),
@@ -22,7 +25,7 @@ export const revokeSchema = z.object({
 export type RevokeInput = z.infer<typeof revokeSchema>;
 
 export const linkOAuthAccountSchema = z.object({
-    provider: z.string().min(1, "Provider is required"),
+    provider: z.enum(providers, { message: "Invalid provider" }),
     accessToken: z.string().min(1, "Access token is required"),
     refreshToken: z.string().optional(),
     tokenExpiresAt: z.number().positive(),

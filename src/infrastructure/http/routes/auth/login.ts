@@ -51,7 +51,7 @@ loginRoute.post(createRoute<LoginInput>(
 
         const eventTracker = new EventTrackingService();
 
-        if (provider === 'bnet' || provider === 'bnet_oauth') {
+        if (provider === 'bnet_oauth') {
             const environment = getEnvironment()
             const wowAccountService = new WowAccountService(environment.profileNamespaces);
             const characterService = new WowCharacterService();
@@ -70,13 +70,12 @@ loginRoute.post(createRoute<LoginInput>(
             return await battlenetAuthUseCase.execute({
                 bnetToken: access_token,
                 expires_at,
-                provider: 'bnet_oauth',
-                ipAddress: ipAddress || undefined,
-                userAgent: userAgent || undefined
+                ipAddress: ipAddress ?? undefined,
+                userAgent: userAgent ?? undefined
             });
         }
 
-        if (provider === 'discord' || provider === 'discord_oauth') {
+        if (provider === 'discord_oauth') {
             const discordAuthUseCase = new AuthenticateWithDiscordUseCase(
                 authRepository,
                 tokenService,
@@ -86,14 +85,13 @@ loginRoute.post(createRoute<LoginInput>(
             return await discordAuthUseCase.execute({
                 discordToken: access_token,
                 expires_at,
-                ipAddress: ipAddress || undefined,
-                userAgent: userAgent || undefined,
-                refreshToken: refresh_token || undefined,
+                ipAddress: ipAddress ?? undefined,
+                userAgent: userAgent ?? undefined,
+                refreshToken: refresh_token ?? undefined,
             });
         }
 
-        throw new Error("Provider not supported");
-
+        throw new Error("Provider not supported: '" + provider + "'");
     }
 ));
 

@@ -1,3 +1,4 @@
+import { Provider } from "@dto/auth/provider";
 import { RouteContext } from "@http/hono-adapter";
 import { LinkOAuthAccountUseCaseFactory } from "@infrastructure/factories/auth/link-oauth-account-usecase-factory";
 import { LinkOAuthAccountUseCase } from "@use-cases/link-oauth-account-usecase";
@@ -8,7 +9,7 @@ export class LinkOauthAccountController {
         private readonly linkOAuthAccountUseCase: LinkOAuthAccountUseCase,
     ) { }
     async handle({ input: { provider, accessToken, refreshToken, tokenExpiresAt }, c: context }: RouteContext<{
-        provider: string;
+        provider: Provider;
         accessToken: string;
         refreshToken?: string;
         tokenExpiresAt: number;
