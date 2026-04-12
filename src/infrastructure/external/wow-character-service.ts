@@ -8,6 +8,10 @@ export class WowCharacterService extends BlizzardApi
 	implements IWowCharacterService {
 
 	async getCharacter(realmSlug: string, characterName: string, token: string): Promise<WoWCharacter> {
+		const isCharacterNameValid = /^\p{L}{2,12}$/u.test(characterName.toLocaleLowerCase())
+		if (!isCharacterNameValid) {
+			throw new Error(`Invalid character name: ${characterName}`);
+		}
 		const namespace = findNamespace(realmSlug, 'profile');
 		if (!namespace) {
 			throw new Error(`Namespace not found for realm: ${realmSlug}`);

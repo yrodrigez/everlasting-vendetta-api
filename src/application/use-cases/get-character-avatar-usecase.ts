@@ -1,8 +1,7 @@
+import { Member } from "@entities/member";
 import type { IMemberRepository } from "@repositories/i-member-repository";
 import type ITokenRepository from "@repositories/i-token-repository";
 import type { IWowCharacterService } from "@repositories/i-wow-character-service";
-import { Member } from "@entities/member";
-import { findNamespace } from "@infrastructure/environment";
 
 export interface GetCharacterAvatarInput {
     realmSlug: string;

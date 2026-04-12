@@ -295,6 +295,28 @@ export class MemberRepository implements IMemberRepository {
         return Member.fromDB(data);
     }
 
+    async findSelectedByUserId(userId: string): Promise<Member | null> {
+        const { data, error } = await this.database
+            .from(MEMBER_TABLE)
+            .select("*")
+            .eq("user_id", userId)
+            .eq("is_selected", true)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            throw new MemberRepositoryError(
+                `Error fetching selected member by user ID: ${error.message || "Unknown error"}`,
+            );
+        }
+
+        if (!data) {
+            return null;
+        }
+
+        return Member.fromDB(data);
+    }
+
     async findAllByUserId(userId: string, realmSlugs?: string[]): Promise<Member[]> {
         const { data, error } = await (() => {
             if (realmSlugs && realmSlugs.length > 0) {

@@ -20,4 +20,5 @@ export interface IMemberRepository {
 
     unlinkAllFromUserId(userId: string): Promise<Member[]>;
     isUserGuildMember(userId: string, realmSlugs: string[]): Promise<boolean>;
+    findSelectedByUserId(userId: string): Promise<Member | null>;
 }

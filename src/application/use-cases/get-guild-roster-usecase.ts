@@ -137,7 +137,7 @@ export class GetGuildRosterUseCase {
                     try {
                         return await this.wowCharacterService.getCharacterWithAvatar(
                             m.realmSlug,
-                            encodeURIComponent(m.name.toLowerCase()),
+                            (m.name.toLowerCase()),
                             accessToken,
                         )
                     } catch (error) {
