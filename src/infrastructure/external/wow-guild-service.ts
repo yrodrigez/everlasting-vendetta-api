@@ -30,10 +30,30 @@ type BlizzardGuildRosterResponse = {
                 slug?: string;
             };
         };
+        rank: number;
     }>;
 };
 
 export class WowGuildService extends BlizzardApi implements IWowGuildService {
+
+    private rankNumberToNameMap(rank: number): { id: number, name: string, isAlt: boolean } {
+        const rankNames = [
+            'GUILD_MASTER',
+            'RAID_LEADER',
+            'RESP_COMRADE',
+            'RESP_VETERAN',
+            'RESP_RAIDER',
+            'OFFICER_ALT',
+            'BANNED',
+            'SOCIAL',
+            'ALTER',
+            'MEMBER',
+        ]
+
+        const name = rankNames[rank] || `RANK_${rank}`;
+        const isAlt = name.toLowerCase().includes('alt');
+        return { id: rank, name, isAlt };
+    };
 
     async getGuildRoster(
         realmSlug: string,
@@ -80,6 +100,7 @@ export class WowGuildService extends BlizzardApi implements IWowGuildService {
 
         const members = (data.members ?? []).map((entry) => {
             const characterRealm = entry.character?.realm;
+            const rank = this.rankNumberToNameMap(entry.rank ?? 9);
             return {
                 key: {
                     href: entry.character?.key?.href ?? "",
@@ -90,6 +111,7 @@ export class WowGuildService extends BlizzardApi implements IWowGuildService {
                     name: characterRealm?.name ?? baseRealm.name,
                     slug: characterRealm?.slug ?? baseRealm.slug,
                 },
+                rank,
             };
         });
 

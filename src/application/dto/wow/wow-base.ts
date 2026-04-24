@@ -3,3 +3,10 @@ export interface Realm {
     slug: string;
     id: number;
 }
+
+export interface Media {
+    key: {
+        href: string;
+    };
+    id: number;
+}

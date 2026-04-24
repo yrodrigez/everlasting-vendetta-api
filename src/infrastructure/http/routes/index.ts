@@ -7,6 +7,7 @@ import characterRoutes from "./characters";
 import { raidRoutes } from "./raid";
 import analyticsRoutes from "./analytics";
 import discordRoutes from "./discord";
+import resetRoutes from "./reset";
 
 const routes = new Hono();
 
@@ -26,6 +27,7 @@ routes.route("/gearscore", gearscoreRoutes);
 routes.route("/realms", realmsRoutes);
 routes.route("/auth/characters", characterRoutes);
 routes.route("/raids", raidRoutes);
+routes.route("/reset", resetRoutes);
 routes.route("/analytics", analyticsRoutes);
 routes.route("/discord", discordRoutes);
 
