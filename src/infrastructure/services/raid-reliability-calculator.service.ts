@@ -1,7 +1,7 @@
 import { RRSCalculator, RSSCalculatorInput, RSSCalculatorOutput } from "src/application/ports/raid-resets/raid-readiness-score-calculator.port";
 
 const FULL_ENCHANT_MULTIPLIER = 1.175 // 17.5% increase 
-const PRIORITY_ROLE_MULTIPLIER = 1.135 // 13.5% increase
+const PRIORITY_ROLE_MULTIPLIER = 1.09 // 9% increase
 const ALTERS_PRIORITY_ROLE_MULTIPLIER = 0.91 // 9% decrease
 
 export class RaidReadinessScoreCalculatorService implements RRSCalculator {
@@ -9,6 +9,8 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         if (weeksConsidered <= 1) return 45
         if (weeksConsidered === 2) return 50
         if (weeksConsidered === 3) return 55
+        if (weeksConsidered === 4) return 50
+        if (weeksConsidered === 5) return 45
 
         return 0
     }

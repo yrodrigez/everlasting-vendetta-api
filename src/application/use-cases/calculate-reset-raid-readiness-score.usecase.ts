@@ -30,8 +30,11 @@ export type CalculateResetRaidReadinessScoreUseCaseOutput = {
         isPriorityRole: boolean;
         isAlter: boolean;
         isFullEnchanted: boolean;
-        participationCount: number;
-        totalRaids: number;
+        coverageScore: number;
+        weightedWeeklyScore: number;
+        finalRecentReliability: number;
+        opportunitiesConsidered: number;
+        weeksConsidered: number;
         weeksSinceAccountCreation: number;
         rrs: number;
         multipliers: Record<string, number>;
@@ -77,7 +80,7 @@ export class CalculateResetRaidReadinessScoreUseCase {
         resetId,
     }: CalculateResetRaidReadinessScoreUseCaseInput): Promise<CalculateResetRaidReadinessScoreUseCaseOutput> {
         const reset = await this.raidResetsPort.getResetCreatedBy(resetId);
-        
+
         // Parse raid date and time
         const raidDateTime = new Date(`${reset.raidDate}T${reset.time}Z`); // Assumes UTC, adjust if needed based on timezone requirements
 
@@ -142,8 +145,11 @@ export class CalculateResetRaidReadinessScoreUseCase {
                     isPriorityRole,
                     isAlter,
                     isFullEnchanted,
-                    participationCount: reliability.weightedWeeklyScore,
-                    totalRaids: reliability.opportunitiesConsidered,
+                    coverageScore: reliability.coverageScore,
+                    weightedWeeklyScore: reliability.weightedWeeklyScore,
+                    finalRecentReliability: reliability.finalRecentReliability,
+                    opportunitiesConsidered: reliability.opportunitiesConsidered,
+                    weeksConsidered: reliability.weeksConsidered,
                     weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
                     rrs,
                     multipliers,
