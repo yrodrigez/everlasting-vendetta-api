@@ -6,7 +6,6 @@ import type { DatabaseClient } from "../database/database-client-factory.ts";
 export class ItemService implements IItemService {
 	constructor(
 		private readonly supabase: DatabaseClient,
-
 	) { }
 
 	async getItem(
@@ -19,7 +18,7 @@ export class ItemService implements IItemService {
 		}
 
 		const cachedItem = await this.getItemFromDatabase(itemId);
-		if (cachedItem && this.isCacheValid(cachedItem.lastUpdated) && cachedItem.details.id) {
+		if (cachedItem && this.isCacheValid(cachedItem.lastUpdated, cachedItem.details.sockets) && cachedItem.details.id) {
 			return cachedItem.details;
 		}
 
@@ -51,16 +50,20 @@ export class ItemService implements IItemService {
 		};
 	}
 
-	private isCacheValid(lastUpdated: string): boolean {
-		const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 180; // 180 days
-		const lastUpdatedTime = new Date(lastUpdated).getTime();
-		const now = new Date().getTime();
-		return (now - lastUpdatedTime) < CACHE_TTL_MS;
+	private isCacheValid(lastUpdated: string, sockets?: Array<{ type: string }>): boolean {
+
+		if(sockets && sockets.length > 0) {
+			return true; // if item has sockets, we consider the cache valid regardless of age, since sockets are critical for gear score and don't change often
+		}
+
+		const lastUpdatedDate = new Date(lastUpdated);
+		const socketAddtionDate = new Date("2026-04-30"); // hypothetical date when sockets were added to items in the database
+		
+		return lastUpdatedDate > socketAddtionDate; // if item was last updated before sockets were added, we consider the cache invalid
 	}
 
 	private async fetchNewItem(
 		itemId: number,
-
 	): Promise<ItemDetails> {
 		const [wowHeadItem, displayId] = await Promise.all([
 			this.fetchWoWHeadItem(itemId),
@@ -143,6 +146,12 @@ export class ItemService implements IItemService {
 		);
 		const itemLevel = itemLevelMatch ? parseInt(itemLevelMatch[1]) : 0;
 
+		const sockets = data.tooltip.match(/<a.*?class="socket-.*?">.*?<\/a>/g)?.map((socketHtml: string) => {
+			const socketTypeMatch = socketHtml.match(/<a.*?class="socket-(prismatic|red|blue|yellow|meta)\S*.*?">/);
+			const socketType = socketTypeMatch ? socketTypeMatch[1] : "unknown";
+			return { type: socketType };
+		}) || [];
+
 		return {
 			icon: `https://wow.zamimg.com/images/wow/icons/medium/${data.icon}.jpg`,
 			level: itemLevel,
@@ -154,7 +163,7 @@ export class ItemService implements IItemService {
 				type: qualityName.toUpperCase(),
 				name: qualityName[0].toUpperCase() + qualityName.slice(1),
 			},
-
+			sockets,
 		};
 	}
 

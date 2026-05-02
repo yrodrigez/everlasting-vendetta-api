@@ -7,7 +7,11 @@ import { RaidResetParticipantsRepository } from "@infrastructure/repositories/ra
 import { RaidResetsRepository } from "@infrastructure/repositories/raid-resets.repository";
 import { BlizzardTokenRepository } from "@infrastructure/repositories/blizzard-token-repository";
 import { UserRegistrationWeeksRepository } from "@infrastructure/repositories/user-registration-weeks.repository";
+import { GearScoreCacheRepository } from "@infrastructure/repositories/gearscore-cache-repository";
+import { HighestGSRepository } from "@infrastructure/repositories/highest-gs-repository";
 import { RaidReadinessScoreCalculatorService } from "@infrastructure/services/raid-reliability-calculator.service";
+import { ItemService } from "@external/item-service";
+import { GearScoreResolver } from "../../../application/services/gear-score/gear-score-resolver";
 import { CalculateResetRaidReadinessScoreUseCase } from "@use-cases/calculate-reset-raid-readiness-score.usecase";
 
 export class CalculateResetRaidReadinessScoreUseCaseFactory {
@@ -18,6 +22,16 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
             databaseClient,
             blizzardOauthService
         );
+        const cacheRepository = new GearScoreCacheRepository(databaseClient);
+        const highestGSRepository = new HighestGSRepository(databaseClient);
+        const itemService = new ItemService(databaseClient);
+
+        const gearScoreResolver = new GearScoreResolver(
+            cacheRepository,
+            new ItemService(databaseClient),
+            highestGSRepository
+        );
+
 
         return new CalculateResetRaidReadinessScoreUseCase(
             new RaidResetsRepository(databaseClient),
@@ -27,7 +41,10 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
             new RaidReadinessScoreCalculatorService(),
             tokenRepository,
             new WowGuildService(),
-            new UserRegistrationWeeksRepository(databaseClient)
+            new UserRegistrationWeeksRepository(databaseClient),
+            highestGSRepository,
+            gearScoreResolver,
+            itemService
         );
     }
 }

@@ -1,15 +1,14 @@
 import { ICharacterEquipmentService } from "@repositories/gearscore/i-character-equipment-service";
+import { IItemService } from "@repositories/gearscore/i-item-service";
 import ITokenRepository from "@repositories/i-token-repository";
 import pLimit from "p-limit";
-import {
-    InventoryType,
-    isEnchantable,
-} from "../../domain/entities/gearscore/inventory-type";
 import { IWowGuildService } from "../../domain/services/i-wow-guild-service";
+import { createLogger } from "../../infrastructure/logging";
 import {
     CharacterReliabilityPort,
     ReliabilityScore,
 } from "../ports/character/character-reliability.port";
+import { HighestGSPort } from "../ports/gear-score/highest-gs.port";
 import { RRSCalculator } from "../ports/raid-resets/raid-readiness-score-calculator.port";
 import { RaidResetsPort } from "../ports/raid-resets/raid-resets.port";
 import {
@@ -17,6 +16,8 @@ import {
     RaidResetsParticipantPort,
 } from "../ports/raid-resets/reset-participants.port";
 import { UserRegistrationWeeksPort } from "../ports/user/user-registration-weeks.port";
+import { GearScoreResolver } from "../services/gear-score/gear-score-resolver";
+import { isFullyEnchanted } from "../services/gear-score/gearscore-enchantment";
 
 export type CalculateResetRaidReadinessScoreUseCaseInput = {
     resetId: string;
@@ -57,8 +58,19 @@ type GuildRosterMember = Awaited<
     ReturnType<IWowGuildService["getGuildRoster"]>
 >["members"][number];
 
+const UNWANTED_GEMS = [
+    // IDs of gems that we want to ignore when calculating if a character is fully gemmed, because they don't provide a significant stat increase and can be used as fillers
+    23094,
+    23097, 23096, 23095, 28595, 28290, 23116, 31860, 23114, 23115, 23113, 23118,
+    23119, 23121, 23120, 31869, 23099, 31866, 23098, 23101, 23100, 31864, 23110,
+    31862, 23109, 23111, 23108, 32833, 23105, 23104, 23103, 23106, 23094,
+];
+
 export class CalculateResetRaidReadinessScoreUseCase {
     private readonly equipmentFetchLimit = pLimit(EQUIPMENT_FETCH_CONCURRENCY);
+    private readonly logger = createLogger(
+        "CalculateResetRaidReadinessScoreUseCase"
+    );
 
     private static readonly rosterCache = new Map<
         string,
@@ -73,23 +85,34 @@ export class CalculateResetRaidReadinessScoreUseCase {
         private readonly rrsCalculator: RRSCalculator,
         private readonly tokenRepository: ITokenRepository,
         private readonly wowGuildService: IWowGuildService,
-        private readonly userRegistrationWeeksPort: UserRegistrationWeeksPort
-    ) { }
+        private readonly userRegistrationWeeksPort: UserRegistrationWeeksPort,
+        private readonly highestGSPort: HighestGSPort,
+        private readonly gearScoreResolver: GearScoreResolver,
+        private readonly itemService: IItemService
+    ) {}
 
     async execute({
         resetId,
     }: CalculateResetRaidReadinessScoreUseCaseInput): Promise<CalculateResetRaidReadinessScoreUseCaseOutput> {
+        this.logger.info(
+            `Calculating raid readiness score for reset ${resetId}...`
+        );
         const reset = await this.raidResetsPort.getResetCreatedBy(resetId);
 
         // Parse raid date and time
         const raidDateTime = new Date(`${reset.raidDate}T${reset.time}Z`); // Assumes UTC, adjust if needed based on timezone requirements
-
+        this.logger.info(
+            `Raid date and time parsed as ${raidDateTime.toISOString()}`
+        );
         const participants =
             await this.raidResetsParticipantPort.getParticipantsByResetId(
                 resetId
             );
+        this.logger.info(
+            `Fetched ${participants.length} participants for reset ${resetId}.`
+        );
         const token = await this.tokenRepository.getCurrentToken();
-        const rosterByCharacter = await this.getRosterByCharacter(
+        const rosterByCharacter = await this.getGuildRoster(
             reset.createdBy.realmSlug,
             token.access_token
         );
@@ -108,16 +131,38 @@ export class CalculateResetRaidReadinessScoreUseCase {
                 const reliability =
                     reliabilityByCharacter.get(characterKey) ??
                     this.getDefaultReliability(characterName, realmSlug);
-                const equipment = await this.equipmentFetchLimit(() =>
-                    this.characterEquipmentService.fetchEquipment(
-                        characterName.toLowerCase(),
-                        realmSlug.toLowerCase(),
-                        token.access_token
-                    )
+                const highestGS = await this.highestGSPort.getHighestGS(
+                    characterName,
+                    realmSlug
                 );
-                const isFullEnchanted = this.isFullEnchanted(
-                    equipment.equippedItems
-                );
+                let isFullEnchanted =
+                    highestGS?.details.isFullEnchanted === true;
+                let isFullyGemmed = false;
+
+                if (!isFullEnchanted) {
+                    const equipment = await this.equipmentFetchLimit(() =>
+                        this.characterEquipmentService.fetchEquipment(
+                            characterName.toLowerCase(),
+                            realmSlug.toLowerCase(),
+                            token.access_token
+                        )
+                    );
+                    isFullyGemmed = await this.isFullyGemmed(
+                        equipment.equippedItems,
+                        characterName,
+                        realmSlug
+                    );
+                    const currentIsFullEnchanted = isFullyEnchanted(
+                        equipment.equippedItems
+                    );
+                    isFullEnchanted = isFullEnchanted || currentIsFullEnchanted;
+
+                    await this.gearScoreResolver.resolve({
+                        characterName: equipment.characterName,
+                        realmSlug,
+                        equippedItems: equipment.equippedItems,
+                    });
+                }
                 const isPriorityRole = this.isPriorityRole(rosterMember);
                 const isAlter = rosterMember?.rank?.isAlt ?? false;
                 const userRegistrationWeeks =
@@ -125,19 +170,23 @@ export class CalculateResetRaidReadinessScoreUseCase {
                         participant.character.userId
                     );
                 if (!userRegistrationWeeks && userRegistrationWeeks !== 0) {
-                    throw new Error(`Failed to fetch registration weeks for user ${participant.character.userId}`);
+                    throw new Error(
+                        `Failed to fetch registration weeks for user ${participant.character.userId}`
+                    );
                 }
-                const { rrs, multipliers } = this.rrsCalculator.calculateReadinessScore({
-                    characterName,
-                    realmSlug,
-                    weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
-                    raidReliabilityRating: reliability.finalRecentReliability,
-                    isFullEnchanted,
-                    isPriorityRole,
-                    isAlter,
-                    signedUpAt: participant.participationCreatedAt,
-                    raidDateTime
-                });
+                const { rrs, multipliers } =
+                    this.rrsCalculator.calculateReadinessScore({
+                        characterName,
+                        realmSlug,
+                        weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
+                        raidReliabilityRating: reliability.finalRecentReliability,
+                        isFullEnchanted,
+                        isPriorityRole,
+                        isAlter,
+                        signedUpAt: participant.participationCreatedAt,
+                        raidDateTime,
+                        isFullyGemmed,
+                    });
 
                 return {
                     characterName,
@@ -148,9 +197,11 @@ export class CalculateResetRaidReadinessScoreUseCase {
                     coverageScore: reliability.coverageScore,
                     weightedWeeklyScore: reliability.weightedWeeklyScore,
                     finalRecentReliability: reliability.finalRecentReliability,
-                    opportunitiesConsidered: reliability.opportunitiesConsidered,
+                    opportunitiesConsidered:
+                        reliability.opportunitiesConsidered,
                     weeksConsidered: reliability.weeksConsidered,
-                    weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
+                    weeksSinceAccountCreation:
+                        userRegistrationWeeks.weeksSinceRegistration,
                     rrs,
                     multipliers,
                 };
@@ -163,10 +214,11 @@ export class CalculateResetRaidReadinessScoreUseCase {
         };
     }
 
-    private async getRosterByCharacter(
+    private async getGuildRoster(
         realmSlug: string,
         token: string
     ): Promise<Map<string, GuildRosterMember>> {
+        this.logger.info(`Fetching guild roster for realm ${realmSlug}...`);
         const normalizedRealmSlug = realmSlug.trim().toLowerCase();
         const cacheKey = this.getRosterCacheKey(normalizedRealmSlug);
         const cached =
@@ -182,6 +234,7 @@ export class CalculateResetRaidReadinessScoreUseCase {
             GUILD_NAME,
             token
         );
+        this.logger.info(`Fetched guild roster for realm ${realmSlug}.`);
 
         for (const member of roster.members) {
             rosterByCharacter.set(
@@ -239,21 +292,49 @@ export class CalculateResetRaidReadinessScoreUseCase {
         return reliabilityByCharacter;
     }
 
-    private isFullEnchanted(
+    private async isFullyGemmed(
         equippedItems: Awaited<
             ReturnType<ICharacterEquipmentService["fetchEquipment"]>
-        >["equippedItems"]
-    ): boolean {
-        return equippedItems
-            .filter(
-                (item) =>
-                    item.inventoryType.toLowerCase().indexOf("tabard") === -1
-            )
-            .filter(({ inventoryType }) =>
-                isEnchantable(inventoryType as InventoryType)
-            )
-            .filter(({ inventoryType }) => !inventoryType.includes("RANGED"))
-            .every((item) => item.isEnchanted);
+        >["equippedItems"],
+        characterName: string,
+        realmSlug: string
+    ): Promise<boolean> {
+        const detailedEquipment = await Promise.all(
+            equippedItems.map(async (item) => {
+                try {
+                    const itemDetails = await this.itemService.getItem(
+                        item.itemId,
+                        false
+                    );
+                    return {
+                        ...item,
+                        sockets: itemDetails.sockets ?? [],
+                    };
+                } catch (error) {
+                    this.logger.error(
+                        `Failed to fetch details for item ${item.itemId} of ${characterName} on ${realmSlug}:`,
+                        error instanceof Error ? error : String(error)
+                    );
+                    return {
+                        ...item,
+                        sockets: [],
+                    };
+                }
+            })
+        );
+
+        return detailedEquipment.every((item) => {
+            const expectedGems = item.sockets.length;
+            if (expectedGems === 0) {
+                return true;
+            }
+
+            const gemsCount =
+                item.gems?.filter((gem) => !UNWANTED_GEMS.includes(gem.itemId))
+                    .length ?? 0;
+
+            return gemsCount === expectedGems;
+        });
     }
 
     private isPriorityRole(rosterMember?: GuildRosterMember): boolean {

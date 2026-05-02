@@ -16,9 +16,10 @@ export interface ItemDetails {
 	level?: number;
 	tooltip?: string;
 	qualityName?: string;
-
-
-};
+	sockets?: Array<{
+		type: string;
+	}>;
+}
 
 
 export interface IItemService {

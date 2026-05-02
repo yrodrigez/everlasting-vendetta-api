@@ -1,6 +1,5 @@
 export interface CharacterEquipment {
 	readonly characterName: string;
-	readonly characterClass?: string;
 	readonly equippedItems: Array<{
 		readonly itemId: number;
 		readonly inventoryType: string;
