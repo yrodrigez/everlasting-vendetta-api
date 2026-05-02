@@ -11,7 +11,7 @@ export class GearScoreCacheRepository implements IGearScoreCacheRepository {
 	async getByHash(hash: string): Promise<CachedGearScore | null> {
 		const { data, error } = await this.supabase
 			.from("gs_cache")
-			.select("gs, color")
+			.select("gs, color, is_fully_gemmed")
 			.eq("md5", hash)
 			.maybeSingle();
 
@@ -28,6 +28,7 @@ export class GearScoreCacheRepository implements IGearScoreCacheRepository {
 		return {
 			score: data.gs,
 			color: data.color as GearScoreColor,
+			isFullyGemmed: data.is_fully_gemmed,
 		};
 	}
 
@@ -35,11 +36,13 @@ export class GearScoreCacheRepository implements IGearScoreCacheRepository {
 		hash: string,
 		score: number,
 		color: GearScoreColor,
+		isFullyGemmed: boolean
 	): Promise<void> {
 		const { error } = await this.supabase.from("gs_cache").upsert({
 			md5: hash,
 			gs: score,
 			color,
+			is_fully_gemmed: isFullyGemmed
 		});
 
 		if (error) {

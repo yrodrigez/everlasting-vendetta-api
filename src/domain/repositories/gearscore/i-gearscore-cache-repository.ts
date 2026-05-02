@@ -3,6 +3,7 @@ import type { GearScoreColor } from "@entities/gearscore/gear-score.ts";
 export interface CachedGearScore {
 	readonly score: number;
 	readonly color: GearScoreColor;
+	readonly isFullyGemmed: boolean;
 }
 
 export interface IGearScoreCacheRepository {
@@ -14,5 +15,5 @@ export interface IGearScoreCacheRepository {
 	/**
 	 * Saves or updates a gear score in the cache
 	 */
-	save(hash: string, score: number, color: GearScoreColor): Promise<void>;
+	save(hash: string, score: number, color: GearScoreColor, isFullyGemmed: boolean): Promise<void>;
 }

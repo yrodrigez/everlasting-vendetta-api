@@ -28,7 +28,7 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
 
         const gearScoreResolver = new GearScoreResolver(
             cacheRepository,
-            new ItemService(databaseClient),
+            itemService,
             highestGSRepository
         );
 
@@ -44,7 +44,6 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
             new UserRegistrationWeeksRepository(databaseClient),
             highestGSRepository,
             gearScoreResolver,
-            itemService
         );
     }
 }

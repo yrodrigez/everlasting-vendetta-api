@@ -9,6 +9,7 @@ export type RSSCalculatorInput = {
     isAlter: boolean;
     signedUpAt: Date;
     raidDateTime: Date;
+    isFullyGemmedActive?: boolean;
 };
 
 export type RSSCalculatorOutput = {

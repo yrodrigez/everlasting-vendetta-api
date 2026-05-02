@@ -7,7 +7,8 @@ import {
 const FULL_ENCHANT_MULTIPLIER = 1.175; // 17.5% increase
 const PRIORITY_ROLE_MULTIPLIER = 1.09; // 9% increase
 const ALTERS_PRIORITY_ROLE_MULTIPLIER = 0.91; // 9% decrease
-const IS_FULLY_GEMMED_MULTIPLIER = 1.15; // 15% increase for being fully gemmed
+const IS_FULLY_GEMMED_ACTIVE_TEST_FLAG = true; // Whether to apply the fully gemmed multiplier or not. We can activate this once most of the players are fully gemmed.
+const IS_FULLY_GEMMED_MULTIPLIER = 1.15; // 15% increase for being fully gemmed (Deactivated for now, as many people are not yet fully gemmed and we don't want to penalize them)
 
 export class RaidReadinessScoreCalculatorService implements RRSCalculator {
     private getNewPlayerReliabilityFloor(weeksConsidered: number): number {
@@ -42,7 +43,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         return (
             latestSignupMultiplier +
             (cappedHours / 72) *
-                (earliestSignupMultiplier - latestSignupMultiplier)
+            (earliestSignupMultiplier - latestSignupMultiplier)
         );
     }
 
@@ -53,7 +54,8 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         isAlter: boolean,
         signedUpAt: Date,
         raidDateTime: Date,
-        isFullyGemmed: boolean
+        isFullyGemmed: boolean,
+        isFullyGemmedActive: boolean
     ): RSSCalculatorOutput => {
         let modifiedRRS = rrs;
         const multipliers: Record<string, number> = {};
@@ -78,12 +80,13 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         );
         modifiedRRS *= timingMultiplier;
         multipliers.signupTiming = timingMultiplier;
-
-        const fullyGemmedMultiplier = isFullyGemmed
-            ? IS_FULLY_GEMMED_MULTIPLIER
-            : 1;
-        // modifiedRRS *= fullyGemmedMultiplier; // Do not apply this yet. People is not yet prepared.
-        multipliers.fullyGemmed = isFullyGemmed ? fullyGemmedMultiplier : 1;
+        if (isFullyGemmedActive) {
+            const fullyGemmedMultiplier = isFullyGemmed
+                ? IS_FULLY_GEMMED_MULTIPLIER
+                : 1;
+            // modifiedRRS *= fullyGemmedMultiplier; // Do not apply this yet. People is not yet prepared.
+            multipliers.fullyGemmed = isFullyGemmed ? fullyGemmedMultiplier : 1;
+        }
 
         return { rrs: modifiedRRS, multipliers };
     };
@@ -97,6 +100,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         signedUpAt,
         raidDateTime,
         isFullyGemmed = false,
+        isFullyGemmedActive = IS_FULLY_GEMMED_ACTIVE_TEST_FLAG,
     }: RSSCalculatorInput): RSSCalculatorOutput {
         const effectiveReliability = this.getEffectiveReliability(
             raidReliabilityRating,
@@ -110,7 +114,8 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
             isAlter,
             signedUpAt,
             raidDateTime,
-            isFullyGemmed
+            isFullyGemmed,
+            isFullyGemmedActive
         );
     }
 }

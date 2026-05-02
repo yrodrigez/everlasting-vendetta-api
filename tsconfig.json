@@ -13,7 +13,7 @@
         "resolveJsonModule": true,
         "outDir": "./dist",
         "rootDir": "./src",
-        "ignoreDeprecations": "5.0",
+        "ignoreDeprecations": "6.0",
         "baseUrl": ".",
         "paths": {
             "@entities/*": ["./src/domain/entities/*"],

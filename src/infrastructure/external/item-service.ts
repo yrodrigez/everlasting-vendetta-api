@@ -57,7 +57,7 @@ export class ItemService implements IItemService {
 		}
 
 		const lastUpdatedDate = new Date(lastUpdated);
-		const socketAddtionDate = new Date("2026-04-30"); // hypothetical date when sockets were added to items in the database
+		const socketAddtionDate = new Date("2026-05-03"); // hypothetical date when sockets were added to items in the database
 		
 		return lastUpdatedDate > socketAddtionDate; // if item was last updated before sockets were added, we consider the cache invalid
 	}

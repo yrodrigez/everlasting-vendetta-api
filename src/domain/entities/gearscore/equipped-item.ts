@@ -13,6 +13,9 @@ export interface EquippedItem {
         readonly fetchUrl: string;
         readonly displayString: string;
     }>;
+    readonly sockets: Array<{
+        readonly type: string;
+    }>;
 }
 
 export interface EquippedItemRaw {
@@ -27,7 +30,8 @@ export function createEquippedItem(
     isEnchanted: boolean,
     itemLevel: number,
     quality: ItemQuality,
-    gems: EquippedItem["gems"] = []
+    gems: EquippedItem["gems"] = [],
+    sockets: EquippedItem["sockets"] = []
 ): EquippedItem {
     if (id <= 0) {
         throw new Error("Item ID must be greater than 0");
@@ -43,5 +47,6 @@ export function createEquippedItem(
         itemLevel,
         quality,
         gems,
+        sockets,
     };
 }

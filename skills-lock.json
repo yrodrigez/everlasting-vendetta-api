@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "clean-code": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/clean-code/SKILL.md",
+      "computedHash": "551e1ac1c416d9df11fce8bc613c3595794f1f5e634d20c5b3e257afded11ed7"
+    },
     "cloudflare": {
       "source": "cloudflare/skills",
       "sourceType": "autoskills-registry",
@@ -30,6 +36,18 @@
       "source": "supabase/agent-skills",
       "sourceType": "autoskills-registry",
       "computedHash": "4c09c107aa64d7722369c3856ba8743ea11e7450e4f1227cb72a0d375d1e4fd5"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "78b31b2120c5fe7aced1cebfd4c7c94acb0037fd4f89c83c67584414aa4173bd"
+    },
+    "tdd-workflow": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/tdd-workflow/SKILL.md",
+      "computedHash": "c03b44b81e6baa41000b3ce8305640900721becc1e707f4dbdf65b1c6d76d300"
     },
     "typescript-advanced-types": {
       "source": "wshobson/agents",

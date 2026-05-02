@@ -10,6 +10,7 @@ export type HighestGS = {
         hash: string;
         color: GearScoreColor;
         isFullEnchanted: boolean;
+        isFullyGemmed: boolean;
     };
 };
 

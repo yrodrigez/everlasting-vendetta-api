@@ -17,6 +17,7 @@ import type {
 } from "../../ports/gear-score/highest-gs.port";
 import { GearScoreCalculator } from "../../../infrastructure/services/gear-score-calculator";
 import { isFullyEnchanted } from "./gearscore-enchantment";
+import { calculateIsFullyGemmed } from "./gear-score-gems";
 
 export type GearScoreResolverInput = {
     readonly characterName: string;
@@ -42,7 +43,7 @@ export class GearScoreResolver {
         private readonly cacheRepository: IGearScoreCacheRepository,
         private readonly itemService: IItemService,
         private readonly highestGSPort: HighestGSPort
-    ) {}
+    ) { }
 
     async resolve(input: GearScoreResolverInput): Promise<GearScore> {
         const rawItems = this.getRawItems(input.equippedItems);
@@ -52,17 +53,33 @@ export class GearScoreResolver {
                 isEnchanted: item.isEnchanted,
             }))
         );
+
+        const withSocketsAndGems = input.equippedItems.filter((item) => item.gems && item.gems.length > 0 && item.sockets && item.sockets.length > 0 && item.gems.length === item.sockets.length);
+        const withoutSockets = input.equippedItems.filter((item) => !item.sockets || !item.gems || (item.gems ?? []).length !== (item.sockets ?? []).length);
+        const updatedItems = await Promise.all(
+            withoutSockets.map(async (item) => {
+                const details = await this.itemService.getItem(item.itemId);
+                return {
+                    ...item,
+                    ...details,
+                };
+            })
+        );
+        const allItems = [...withSocketsAndGems, ...updatedItems];
+        const isFullyGemmed = calculateIsFullyGemmed(allItems);
         const currentGearScore = await this.resolveCurrentGearScore(
             input,
             rawItems,
-            isFullEnchanted
+            isFullEnchanted,
+            isFullyGemmed
         );
+
         const highestGS = await this.highestGSPort.getHighestGS(
             input.characterName,
             input.realmSlug
         );
 
-        if (highestGS && highestGS.details.gs > currentGearScore.score) {
+        if (highestGS && highestGS.details.gs > currentGearScore.score && !input.forceRefresh && highestGS.details.isFullEnchanted && highestGS.details.isFullyGemmed) {
             return this.createGearScoreFromHighest(highestGS);
         }
 
@@ -76,6 +93,7 @@ export class GearScoreResolver {
                 hash: currentGearScore.hash,
                 color: currentGearScore.color,
                 isFullEnchanted: currentGearScore.isFullEnchanted,
+                isFullyGemmed: currentGearScore.isFullyGemmed,
             },
         });
 
@@ -85,7 +103,8 @@ export class GearScoreResolver {
     private async resolveCurrentGearScore(
         input: GearScoreResolverInput,
         rawItems: RawGearScoreItem[],
-        isFullEnchanted: boolean
+        isFullEnchanted: boolean,
+        isFullyGemmed: boolean
     ): Promise<GearScore> {
         const forceRefresh = input.forceRefresh ?? false;
         const hash = await this.calculator.createEquipmentHash(
@@ -99,7 +118,8 @@ export class GearScoreResolver {
                 cachedScore.score,
                 cachedScore.color,
                 hash,
-                isFullEnchanted
+                isFullEnchanted,
+                isFullyGemmed
             );
         }
 
@@ -113,7 +133,7 @@ export class GearScoreResolver {
                     ItemQuality[item.qualityType as keyof typeof ItemQuality];
                 const wowheadQuality =
                     ItemQuality[
-                        details.quality.type.toUpperCase() as keyof typeof ItemQuality
+                    details.quality.type.toUpperCase() as keyof typeof ItemQuality
                     ];
                 const quality =
                     apiQuality ?? wowheadQuality ?? ItemQuality.COMMON;
@@ -124,7 +144,8 @@ export class GearScoreResolver {
                     item.isEnchanted,
                     details.itemLevel,
                     quality,
-                    item.gems || []
+                    item.gems || [],
+                    details.sockets ?? []
                 );
             })
         );
@@ -139,14 +160,15 @@ export class GearScoreResolver {
             input.characterClass
         );
         const color = this.calculator.getColorForGearScore(score);
-
+        const isFullyGemmedCalculated = calculateIsFullyGemmed(validItems);
         if (score === 0 && cachedScore) {
             return createGearScore(
                 input.characterName,
                 cachedScore.score,
                 cachedScore.color,
                 hash,
-                isFullEnchanted
+                isFullEnchanted,
+                isFullyGemmedCalculated
             );
         }
 
@@ -156,18 +178,20 @@ export class GearScoreResolver {
                 cachedScore.score,
                 cachedScore.color,
                 hash,
-                isFullEnchanted
+                isFullEnchanted,
+                isFullyGemmedCalculated
             );
         }
 
-        await this.cacheRepository.save(hash, score, color);
+        await this.cacheRepository.save(hash, score, color, isFullyGemmedCalculated);
 
         return createGearScore(
             input.characterName,
             score,
             color,
             hash,
-            isFullEnchanted
+            isFullEnchanted,
+            isFullyGemmedCalculated
         );
     }
 
@@ -195,7 +219,8 @@ export class GearScoreResolver {
             highestGS.details.gs,
             highestGS.details.color,
             highestGS.details.hash,
-            highestGS.details.isFullEnchanted
+            highestGS.details.isFullEnchanted,
+            highestGS.details.isFullyGemmed
         );
     }
 

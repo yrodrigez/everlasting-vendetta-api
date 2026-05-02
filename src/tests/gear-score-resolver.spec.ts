@@ -9,6 +9,7 @@ const enchantedEquipment = [
         qualityType: "EPIC",
         fetchUrl: "",
         gems: [],
+        sockets: [],
     },
 ];
 

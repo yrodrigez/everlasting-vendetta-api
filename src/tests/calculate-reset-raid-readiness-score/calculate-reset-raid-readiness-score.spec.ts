@@ -101,9 +101,6 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
             } as any,
             {
                 resolve: jest.fn(),
-            } as any,
-            {
-                getItem: jest.fn(),
             } as any
         );
 
@@ -227,9 +224,6 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
             } as any,
             {
                 resolve: jest.fn(),
-            } as any,
-            {
-                getItem: jest.fn(),
             } as any
         );
 
@@ -319,14 +313,11 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
             } as any,
             {
                 getHighestGS: jest.fn(async () => ({
-                    details: { isFullEnchanted: true },
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
                 })),
             } as any,
             {
                 resolve: jest.fn(),
-            } as any,
-            {
-                getItem: jest.fn(),
             } as any
         );
 
@@ -369,6 +360,7 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
                     qualityType: "EPIC",
                     fetchUrl: "",
                     gems: [],
+                    sockets: [],
                 },
             ],
         };
@@ -440,13 +432,7 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
                     details: { isFullEnchanted: false },
                 })),
             } as any,
-            gearScoreResolver as any,
-            {
-                getItem: jest.fn(async () => ({
-                    sockets: [],
-                    quality: { type: "EPIC" },
-                })),
-            } as any
+            gearScoreResolver as any
         );
 
         await useCase.execute({ resetId: "reset-current-enchanted" });

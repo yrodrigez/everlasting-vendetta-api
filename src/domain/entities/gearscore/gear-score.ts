@@ -13,6 +13,7 @@ export interface GearScore {
 	readonly color: GearScoreColor;
 	readonly hash: string;
 	readonly isFullEnchanted: boolean;
+	readonly isFullyGemmed: boolean;
 }
 
 export function createGearScore(
@@ -21,6 +22,7 @@ export function createGearScore(
 	color: GearScoreColor,
 	hash: string,
 	isFullEnchanted: boolean,
+	isFullyGemmed: boolean
 ): GearScore {
 	if (!characterName || characterName.trim().length === 0) {
 		throw new Error("Character name cannot be empty");
@@ -38,5 +40,6 @@ export function createGearScore(
 		color,
 		hash,
 		isFullEnchanted,
+		isFullyGemmed,
 	};
 }

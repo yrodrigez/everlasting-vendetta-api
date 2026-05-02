@@ -1,6 +1,6 @@
 export interface CharacterEquipment {
 	readonly characterName: string;
-	readonly equippedItems: Array<{
+	equippedItems: Array<{
 		readonly itemId: number;
 		readonly inventoryType: string;
 		readonly isEnchanted: boolean;
@@ -11,6 +11,9 @@ export interface CharacterEquipment {
 			readonly itemId: number;
 			readonly fetchUrl: string;
 			readonly displayString: string;
+		}>;
+		readonly sockets: Array<{
+			readonly type: string;
 		}>;
 	}>;
 }

@@ -26,7 +26,6 @@ export class CalculateGearScoreUseCase {
         const token = await this.tokenRepository.getCurrentToken();
         this.logger.info("Blizzard token fetched successfully.");
 
-        // Fetch equipment for all characters
         this.logger.info(`Fetching equipment for ${request.characters.length} characters...`);
         const equipments = await Promise.all(
             request.characters.map(({ name, realm }) =>
@@ -54,6 +53,7 @@ export class CalculateGearScoreUseCase {
         this.logger.info("Calculating gear score for each character...");
         const gearScores = await Promise.all(
             equipments.filter(x => x !== null).map(({ equipment, realmSlug }) =>
+
                 this.gearScoreResolver.resolve({
                     characterName: equipment.characterName,
                     realmSlug,
