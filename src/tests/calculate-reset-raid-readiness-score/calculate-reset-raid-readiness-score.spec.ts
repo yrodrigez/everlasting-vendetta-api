@@ -95,12 +95,14 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
             } as any,
             {
                 getHighestGS: jest.fn(async () => ({
-                    details: { isFullEnchanted: true },
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
                 })),
                 saveHighestGS: jest.fn(),
             } as any,
             {
-                resolve: jest.fn(),
+                resolve: jest.fn(async () => ({
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
+                })),
             } as any
         );
 
@@ -218,12 +220,14 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
             } as any,
             {
                 getHighestGS: jest.fn(async () => ({
-                    details: { isFullEnchanted: true },
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
                 })),
-                saveHighestGS: jest.fn(),
+                
             } as any,
             {
-                resolve: jest.fn(),
+                resolve: jest.fn(async () => ({
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
+                })),
             } as any
         );
 
@@ -317,7 +321,9 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
                 })),
             } as any,
             {
-                resolve: jest.fn(),
+                resolve: jest.fn(async () => ({
+                    details: { isFullEnchanted: true, isFullyGemmed: true },
+                })),
             } as any
         );
 
@@ -374,6 +380,7 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
                 color: "common",
                 hash: "hash",
                 isFullEnchanted: true,
+                isFullyGemmed: true,
             })),
         };
         const rrsCalculator: any = {
