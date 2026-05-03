@@ -26,6 +26,7 @@ describe("GearScoreResolver", () => {
                     hash: "highest-hash",
                     color: "rare" as const,
                     isFullEnchanted: true,
+                    isFullyGemmed: true,
                 },
             })),
             saveHighestGS: jest.fn(),
