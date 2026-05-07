@@ -27,7 +27,12 @@ export class ItemService implements IItemService {
 	): Promise<ItemDetails> {
 		if (forceRefresh) {
 			this.logger.info(`Force refreshing item: '${itemId}'`);
-			return this.fetchNewItem(itemId);
+			const newItem = await this.fetchNewItem(itemId);
+			itemCache.set(parseInt(itemId.toString()), {
+				expiresAt: Date.now() + CACHE_DURATION_MS,
+				data: newItem,
+			});
+			return newItem;
 		}
 
 		const cachedItem = itemCache.get(parseInt(itemId.toString()));
