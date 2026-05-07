@@ -3,9 +3,22 @@ import type {
 	ItemDetails,
 } from "@repositories/gearscore/i-item-service.ts";
 import type { DatabaseClient } from "../database/database-client-factory.ts";
+import { createLogger } from "@infrastructure/logging/index.ts";
+
+
+type CachedWowItem = {
+	expiresAt: number;
+	data: ItemDetails;
+}
+
+const itemCache: Map<number, CachedWowItem> = new Map();
+
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 export class ItemService implements IItemService {
+	
 	constructor(
 		private readonly supabase: DatabaseClient,
+		private readonly logger = createLogger("ItemService"),
 	) { }
 
 	async getItem(
@@ -13,16 +26,33 @@ export class ItemService implements IItemService {
 		forceRefresh: boolean = false,
 	): Promise<ItemDetails> {
 		if (forceRefresh) {
-			console.log(`Force refreshing item: '${itemId}'`);
+			this.logger.info(`Force refreshing item: '${itemId}'`);
 			return this.fetchNewItem(itemId);
 		}
 
-		const cachedItem = await this.getItemFromDatabase(itemId);
-		if (cachedItem && this.isCacheValid(cachedItem.lastUpdated, cachedItem.details.sockets) && cachedItem.details.id) {
-			return cachedItem.details;
+		const cachedItem = itemCache.get(parseInt(itemId.toString()));
+		if (cachedItem && cachedItem.expiresAt > Date.now()) {
+			this.logger.info(`Cache hit for item: '${itemId}'`);
+			return cachedItem.data;
 		}
 
-		return this.fetchNewItem(itemId);
+		const dbCached = await this.getItemFromDatabase(itemId);
+		if (dbCached && this.isCacheValid(dbCached.lastUpdated, dbCached.details.sockets) && dbCached.details.id) {
+			itemCache.set(parseInt(itemId.toString()), {
+				expiresAt: Date.now() + CACHE_DURATION_MS,
+				data: dbCached.details,
+			});
+			this.logger.info(`Database cache hit for item: '${itemId}'`);
+			return dbCached.details;
+		}
+
+		const newItem = await this.fetchNewItem(itemId);
+		this.logger.info(`Fetched new data for item: '${itemId}' from WoWHead and updating cache/database`);
+		itemCache.set(parseInt(itemId.toString()), {
+			expiresAt: Date.now() + CACHE_DURATION_MS,
+			data: newItem,
+		});
+		return newItem;
 	}
 
 	private async getItemFromDatabase(
@@ -36,11 +66,12 @@ export class ItemService implements IItemService {
 			.maybeSingle();
 
 		if (error) {
-			console.error("Error fetching item from database:", error);
+			this.logger.error("Error fetching item from database:", error);
 			return null;
 		}
 
 		if (!data?.details) {
+			this.logger.info(`No details found for item: '${itemId}'`);
 			return null;
 		}
 
@@ -52,13 +83,13 @@ export class ItemService implements IItemService {
 
 	private isCacheValid(lastUpdated: string, sockets?: Array<{ type: string }>): boolean {
 
-		if(sockets && sockets.length > 0) {
+		if (sockets && sockets.length > 0) {
 			return true; // if item has sockets, we consider the cache valid regardless of age, since sockets are critical for gear score and don't change often
 		}
 
 		const lastUpdatedDate = new Date(lastUpdated);
 		const socketAddtionDate = new Date("2026-05-03"); // hypothetical date when sockets were added to items in the database
-		
+
 		return lastUpdatedDate > socketAddtionDate; // if item was last updated before sockets were added, we consider the cache invalid
 	}
 
@@ -78,7 +109,7 @@ export class ItemService implements IItemService {
 
 		// Save to database asynchronously (don't wait)
 		this.saveItemToDatabase(itemId, itemDetails).catch((err) =>
-			console.error("Failed to save item to database:", err)
+			this.logger.error("Failed to save item to database:", err)
 		);
 
 		return itemDetails;
@@ -88,7 +119,7 @@ export class ItemService implements IItemService {
 		const baseUrl = `https://www.wowhead.com/item=${id}`;
 		const response = await fetch(baseUrl);
 		if (!response.ok) {
-			console.error(`Error fetching item display id: '${id}', status: ${response.status}`);
+			this.logger.error(`Error fetching item display id: '${id}', status: ${response.status}`);
 			return 0;
 		}
 		const data = await response.text();
@@ -96,7 +127,7 @@ export class ItemService implements IItemService {
 		const regex = /&quot;displayId&quot;\s*:\s*([0-9]+)/
 		const match = data.match(regex);
 		if (!match) {
-			console.warn(`No match for display id in item: '${id}'`);
+			this.logger.warn(`No match for display id in item: '${id}'`);
 			return 0;
 		}
 		const displayId = match[1];
@@ -179,7 +210,7 @@ export class ItemService implements IItemService {
 		});
 
 		if (error) {
-			console.error("Error saving item to database:", error);
+			this.logger.error("Error saving item to database:", error);
 		}
 	}
 }
