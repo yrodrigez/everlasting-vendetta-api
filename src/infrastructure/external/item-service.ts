@@ -12,10 +12,41 @@ type CachedWowItem = {
 }
 
 const itemCache: Map<number, CachedWowItem> = new Map();
+const MAX_CACHE_ITEMS = 5000; // maximum number of items to keep in cache
 
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
 export class ItemService implements IItemService {
-	
+
+	private readonly isCacheValid = (cachedItem: CachedWowItem): boolean => {
+		return cachedItem.expiresAt > Date.now();
+	}
+
+	private readonly getFromCache = (itemId: number): ItemDetails | null => {
+		const cachedItem = itemCache.get(itemId);
+		if (cachedItem && this.isCacheValid(cachedItem)) {
+			itemCache.delete(itemId); 
+			this.setCache(itemId, cachedItem.data); // renew expiration on access
+			return cachedItem.data;
+		}
+
+		itemCache.delete(itemId); // remove stale cache entry if expired
+		return null;
+	}
+
+	private readonly setCache = (itemId: number | string, itemDetails: ItemDetails): void => {
+		if (itemCache.size >= MAX_CACHE_ITEMS) {
+			// Remove the oldest item from the cache
+			const oldestKey = itemCache.keys().next().value;
+			if (oldestKey !== undefined) {
+				itemCache.delete(oldestKey);
+			}
+		}
+		itemCache.set(parseInt(itemId.toString()), {
+			expiresAt: Date.now() + CACHE_DURATION_MS,
+			data: itemDetails,
+		});
+	}
+
 	constructor(
 		private readonly supabase: DatabaseClient,
 		private readonly logger = createLogger("ItemService"),
@@ -28,35 +59,25 @@ export class ItemService implements IItemService {
 		if (forceRefresh) {
 			this.logger.info(`Force refreshing item: '${itemId}'`);
 			const newItem = await this.fetchNewItem(itemId);
-			itemCache.set(parseInt(itemId.toString()), {
-				expiresAt: Date.now() + CACHE_DURATION_MS,
-				data: newItem,
-			});
+			this.setCache(itemId, newItem);
 			return newItem;
 		}
 
-		const cachedItem = itemCache.get(parseInt(itemId.toString()));
-		if (cachedItem && cachedItem.expiresAt > Date.now()) {
-			this.logger.info(`Cache hit for item: '${itemId}'`);
-			return cachedItem.data;
+		const cachedItem = this.getFromCache(itemId);
+		if (cachedItem) {
+			return cachedItem;
 		}
 
 		const dbCached = await this.getItemFromDatabase(itemId);
-		if (dbCached && this.isCacheValid(dbCached.lastUpdated, dbCached.details.sockets) && dbCached.details.id) {
-			itemCache.set(parseInt(itemId.toString()), {
-				expiresAt: Date.now() + CACHE_DURATION_MS,
-				data: dbCached.details,
-			});
+		if (dbCached && this.isDBCacheValid(dbCached.lastUpdated, dbCached.details.sockets) && dbCached.details.id) {
+			this.setCache(itemId, dbCached.details);
 			this.logger.info(`Database cache hit for item: '${itemId}'`);
 			return dbCached.details;
 		}
 
 		const newItem = await this.fetchNewItem(itemId);
 		this.logger.info(`Fetched new data for item: '${itemId}' from WoWHead and updating cache/database`);
-		itemCache.set(parseInt(itemId.toString()), {
-			expiresAt: Date.now() + CACHE_DURATION_MS,
-			data: newItem,
-		});
+		this.setCache(itemId, newItem);
 		return newItem;
 	}
 
@@ -86,7 +107,7 @@ export class ItemService implements IItemService {
 		};
 	}
 
-	private isCacheValid(lastUpdated: string, sockets?: Array<{ type: string }>): boolean {
+	private isDBCacheValid(lastUpdated: string, sockets?: Array<{ type: string }>): boolean {
 
 		if (sockets && sockets.length > 0) {
 			return true; // if item has sockets, we consider the cache valid regardless of age, since sockets are critical for gear score and don't change often
