@@ -44,9 +44,9 @@ export class BodyValidator extends BaseValidator {
         const parsed = this.schema.safeParse(body);
 
         if (!parsed.success) {
-            logger.error("Body validation failed", {
-                errors: parsed.error.issues.map(issue => issue.message).join("; "),
-            });
+            logger.error("Body validation failed",
+                parsed.error.issues.map(issue => issue.message).join("; "),
+            );
             return {
                 success: false,
                 error: {

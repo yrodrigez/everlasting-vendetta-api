@@ -37,6 +37,7 @@ export type UserPayload = {
     isTemporal: boolean;
     isAdmin: boolean;
     isBanned: boolean;
+    isGuildMember: boolean;
 }
 
 function mapUser(payload: AccessTokenPayload): UserPayload {
@@ -48,6 +49,7 @@ function mapUser(payload: AccessTokenPayload): UserPayload {
         isTemporal: payload.isTemporal || false,
         isAdmin: payload.custom_roles?.includes('admin') || payload.isAdmin || false,
         isBanned: payload.isBanned || false,
+        isGuildMember: payload.isGuildMember || false,
     };
 }
 

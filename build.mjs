@@ -1,25 +1,21 @@
-import * as esbuild from 'esbuild';
+import * as esbuild from 'esbuild'
 
 await esbuild.build({
     entryPoints: ['src/server.ts'],
     bundle: true,
     platform: 'node',
     target: 'node20',
-    outdir: 'dist',
+    outfile: 'dist/server.js',
     format: 'esm',
     sourcemap: true,
-    packages: 'bundle', // Force bundle all packages
+    packages: 'bundle',
     banner: {
         js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
     },
     external: [
-        // Keep these truly external
-        '@supabase/supabase-js',
-        'jose',
-        'zod',
-        'happy-dom',
+        //'happy-dom'
     ],
-    logLevel: 'info',
-});
+    logLevel: 'info'
+})
 
-console.log('Build completed');
+console.log('Build completed')

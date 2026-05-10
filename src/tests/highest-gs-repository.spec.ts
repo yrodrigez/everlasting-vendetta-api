@@ -17,6 +17,7 @@ describe("HighestGSRepository", () => {
                         hash: "hash",
                         color: "common",
                         isFullEnchanted: false,
+                        isFullyGemmed: false,
                     },
                 },
                 error: null,
@@ -37,6 +38,7 @@ describe("HighestGSRepository", () => {
                 hash: "hash",
                 color: "common",
                 isFullEnchanted: false,
+                isFullyGemmed: false,
             },
         });
 

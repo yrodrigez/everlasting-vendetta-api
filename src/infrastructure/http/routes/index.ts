@@ -8,6 +8,7 @@ import { raidRoutes } from "./raid";
 import analyticsRoutes from "./analytics";
 import discordRoutes from "./discord";
 import resetRoutes from "./reset";
+import evxRoutes from "./evx";
 
 const routes = new Hono();
 
@@ -30,5 +31,6 @@ routes.route("/raids", raidRoutes);
 routes.route("/reset", resetRoutes);
 routes.route("/analytics", analyticsRoutes);
 routes.route("/discord", discordRoutes);
+routes.route("/evx", evxRoutes);
 
 export { routes };

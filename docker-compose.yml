@@ -23,6 +23,7 @@ services:
       - JWT_EV_ANON_KEY=${JWT_EV_ANON_KEY}
       - JWT_EV_KID=${JWT_EV_KID}
       - ENVIRONMENT=${ENVIRONMENT:-development}
+      - TZ=Europe/Madrid
     env_file:
       - .env
     restart: unless-stopped
@@ -47,6 +48,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
+      - TZ=Europe/Madrid
     env_file:
       - .env
     command: ["npx", "tsx", "watch", "src/server.ts"]

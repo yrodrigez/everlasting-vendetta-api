@@ -1,4 +1,4 @@
-import { sign, verify, decode } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { AccessTokenPayload } from '@dto/auth/access-token-payload';
 import { RefreshTokenPayload } from '@dto/auth/refresh-token-payload';
 import { ITokenService } from 'src/domain/services/i-token-service';
@@ -7,6 +7,7 @@ import { GenerateTokenPairInput } from '@dto/auth/generate-token-pair-input';
 import { getEnvironment } from '../environment';
 import { Provider } from '@dto/auth/provider';
 
+const { sign, verify, decode } = jwt;
 export class JWTTokenService implements ITokenService {
     private accessSecret: string | Buffer;
     private refreshSecret: string | Buffer;

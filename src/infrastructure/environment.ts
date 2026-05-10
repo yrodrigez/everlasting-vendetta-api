@@ -1,4 +1,4 @@
-
+import "dotenv/config";
 const region = process.env.BLIZZARD_REGION || 'eu';
 const locale = process.env.BLIZZARD_LOCALE || 'en_US';
 
@@ -81,6 +81,14 @@ export const getEnvironment = () => {
         profileNamespaces: currentProfileNamespaces,
         staticNamespaces: currentStaticNamespaces,
         dynamicNamespaces: currentDynamicNamespaces,
-        guildNames: ['everlasting-vendetta']
+        guildNames: ['everlasting-vendetta'],
+        postgres: Object.freeze({
+            host: process.env.POSTGRES_HOST!,
+            password: process.env.POSTGRES_PASSWORD!,
+            port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+            user: process.env.POSTGRES_USER!,
+            database: process.env.POSTGRES_DATABASE!,
+            ssl: process.env.POSTGRES_SSL === 'true',
+        })
     });
 };
