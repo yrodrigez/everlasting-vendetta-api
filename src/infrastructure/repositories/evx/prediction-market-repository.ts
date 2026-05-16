@@ -96,6 +96,62 @@ export class PredictionMarketRepository implements PredictionMarketPort {
         private readonly database: SQLDatabaseClientFactory,
         private readonly logger = createLogger("PredictionMarketRepository")
     ) {}
+    
+    async predictCurrentPayout(userId: string, marketId: string, outcomeId: string): Promise<number> {
+        const query = `
+            with request as (
+                select $1::uuid as user_id, $2::uuid as market_id, $3::uuid as outcome_id
+            ),
+            user_pledges as (
+                select pledge.amount, pledge.status
+                from evx.prediction_pledges pledge
+                join evx.wallets wallet on wallet.id = pledge.wallet_id
+                where wallet.user_id = (select user_id from request)
+                    and pledge.market_id = (select market_id from request)
+                    and pledge.outcome_id = (select outcome_id from request)
+            ),
+            market_totals as (
+                select
+                    coalesce(sum(amount) filter (
+                        where status in ('ACTIVE', 'WON', 'LOST')
+                    ), 0)::int as total_pool
+                from evx.prediction_pledges
+                where market_id = (select market_id from request)
+            ),
+            outcome_totals as (
+                select
+                    coalesce(sum(amount) filter (
+                        where status in ('ACTIVE', 'WON', 'LOST')
+                    ), 0)::int as total_pledged
+                from evx.prediction_pledges
+                where market_id = (select market_id from request)
+                    and outcome_id = (select outcome_id from request)
+            )
+            select
+                case
+                    when not exists (select 1 from user_pledges) then 0
+                    when (select total_pool from market_totals) = 0 then 0
+                    else floor((select outcome_totals.total_pledged::numeric / market_totals.total_pool) * (select amount from user_pledges))
+                end as predicted_payout
+        `;
+
+        try {
+            const [record] = await this.database.query<{ predicted_payout: number }>(
+                query,
+                [userId, marketId, outcomeId]
+            );
+            
+            return record ? record.predicted_payout : 0;
+        } catch (error) {
+            this.logger.error(
+                `Error predicting payout for user ${userId} on market ${marketId} and outcome ${outcomeId}`,
+                error
+            );
+            throw new PredictionMarketRepositoryError(
+                "Failed to predict payout"
+            );
+        }
+    }
 
     async findMarkets(): Promise<PredictionMarketDetails[]> {
         try {

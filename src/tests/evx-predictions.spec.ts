@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from "@jest/globals";
 import { Hono } from "hono";
 import { CreatePredictionMarketUseCase } from "../application/use-cases/evx/predictions/create-prediction-market.usecase";
 import {
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     guildMemberMiddleware,
 } from "../infrastructure/http/middleware/guild-member.middleware";
 import { PredictionMarketRepository } from "../infrastructure/repositories/evx/prediction-market-repository";
@@ -11,6 +11,17 @@ import { WalletRepository } from "../infrastructure/repositories/evx/wallet-repo
 const user = {
     userId: "00000000-0000-0000-0000-000000000001",
     roles: ["GUILD_MASTER"],
+    permissions: [],
+    provider: "discord_oauth" as const,
+    isTemporal: false,
+    isAdmin: false,
+    isBanned: false,
+    isGuildMember: true,
+};
+
+const vxAdmin = {
+    userId: "00000000-0000-0000-0000-000000000002",
+    roles: ["VX_ADMIN"],
     permissions: [],
     provider: "discord_oauth" as const,
     isTemporal: false,
@@ -62,7 +73,7 @@ describe("EVX guild middleware", () => {
             context.set("user", { ...user, roles: ["ADMIN"] });
             await next();
         });
-        app.get("/test", guildMasterMiddleware, (context) =>
+        app.get("/test", vxAdminMiddleware, (context) =>
             context.json({ ok: true })
         );
 

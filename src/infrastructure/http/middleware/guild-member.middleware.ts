@@ -18,14 +18,14 @@ export async function guildMemberMiddleware(context: Context, next: Next) {
     await next();
 }
 
-export async function guildMasterMiddleware(context: Context, next: Next) {
+export async function vxAdminMiddleware(context: Context, next: Next) {
     const user = context.get("user");
 
     if (!user) {
         return context.json({ error: "Unauthorized" }, 401);
     }
 
-    if (!user.roles?.includes("GUILD_MASTER")) {
+    if (!user.roles?.includes("GUILD_MASTER") || !user.roles?.includes("VX_ADMIN")) {
         return context.json({ error: "Guild master access required" }, 403);
     }
 

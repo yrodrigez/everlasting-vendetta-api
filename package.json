@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "dev:node": "tsx watch src/server.ts",
-    "build": "node build.mjs", 
+    "build": "node build.mjs",
     "start": "node dist/server.js",
     "deploy": "wrangler deploy",
     "deploy:secrets": "powershell -ExecutionPolicy Bypass -File scripts/upload-secrets.ps1",
@@ -23,7 +23,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.18.0",
+  "packageManager": "pnpm@11.1.1",
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "@supabase/supabase-js": "^2.105.4",

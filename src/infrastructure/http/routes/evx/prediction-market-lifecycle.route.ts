@@ -1,7 +1,7 @@
 import { createRoute, RouteContext } from "@http/hono-adapter";
 import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     guildMemberMiddleware,
 } from "@http/middleware/guild-member.middleware";
 import { evxContainer } from "@infrastructure/di/evx/evx.container";
@@ -28,7 +28,7 @@ predictionMarketLifecycleRoute.patch(
     "/markets/:marketId/open",
     authMiddleware,
     guildMemberMiddleware,
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     createRoute<unknown, unknown, unknown, MarketParams>(
         {
             functionName: "open-prediction-market",
@@ -49,7 +49,7 @@ predictionMarketLifecycleRoute.post(
     "/markets/:marketId/finalize",
     authMiddleware,
     guildMemberMiddleware,
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     createRoute<FinalizeMarketInput, unknown, unknown, MarketParams>(
         {
             functionName: "finalize-prediction-market",
@@ -78,7 +78,7 @@ predictionMarketLifecycleRoute.post(
     "/markets/:marketId/cancel",
     authMiddleware,
     guildMemberMiddleware,
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     createRoute<unknown, unknown, unknown, MarketParams>(
         {
             functionName: "cancel-prediction-market",

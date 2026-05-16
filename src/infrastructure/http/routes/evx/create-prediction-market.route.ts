@@ -1,7 +1,7 @@
 import { createRoute, RouteContext } from "@http/hono-adapter";
 import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     guildMemberMiddleware,
 } from "@http/middleware/guild-member.middleware";
 import { evxContainer } from "@infrastructure/di/evx/evx.container";
@@ -29,7 +29,7 @@ createPredictionMarketRoute.post(
     "/markets",
     authMiddleware,
     guildMemberMiddleware,
-    guildMasterMiddleware,
+    vxAdminMiddleware,
     createRoute<CreatePredictionMarketInput>(
         {
             functionName: "create-prediction-market",
