@@ -23,7 +23,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@11.1.1",
+  "packageManager": "pnpm@11.1.3",
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "@supabase/supabase-js": "^2.105.4",
@@ -53,7 +53,7 @@
     "prettier": "^3.8.3",
     "ts-jest": "^29.4.9",
     "tsc-alias": "^1.8.17",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.2",
     "typescript": "^5.9.3",
     "wrangler": "^4.90.0"
   }

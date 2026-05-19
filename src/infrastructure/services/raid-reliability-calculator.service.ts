@@ -10,25 +10,25 @@ const ALTERS_PRIORITY_ROLE_MULTIPLIER = 0.91; // 9% decrease
 const IS_FULLY_GEMMED_ACTIVE_TEST_FLAG = true; // Whether to apply the fully gemmed multiplier or not. We can activate this once most of the players are fully gemmed.
 const IS_FULLY_GEMMED_MULTIPLIER = 1.15; // 15% increase for being fully gemmed (Deactivated for now, as many people are not yet fully gemmed and we don't want to penalize them)
 
-export class RaidReadinessScoreCalculatorService implements RRSCalculator {
-    private getNewPlayerReliabilityFloor(weeksConsidered: number): number {
-        if (weeksConsidered <= 1) return 45;
-        if (weeksConsidered === 2) return 50;
-        if (weeksConsidered === 3) return 55;
-        if (weeksConsidered === 4) return 50;
-        if (weeksConsidered === 5) return 45;
+const NEUTRAL_RELIABILITY = 55;
+const FULL_CONFIDENCE_AFTER_WEEKS = 8;
 
-        return 0;
+export class RaidReadinessScoreCalculatorService implements RRSCalculator {
+
+    private getReliabilityConfidence(weeksConsidered: number): number {
+        return Math.min(weeksConsidered / FULL_CONFIDENCE_AFTER_WEEKS, 1)
     }
 
-    private getEffectiveReliability = (
+    private getEffectiveReliability(
         reliability: number,
         weeksConsidered: number
-    ) => {
-        const floor = this.getNewPlayerReliabilityFloor(weeksConsidered);
+    ): number {
+        const confidence = this.getReliabilityConfidence(weeksConsidered)
 
-        return Math.max(reliability, floor);
-    };
+        return (
+            NEUTRAL_RELIABILITY * (1 - confidence) + reliability * confidence
+        )
+    }
 
     private getSignupTimingMultiplier(
         signedUpAt: Date,
@@ -56,7 +56,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         raidDateTime: Date,
         isFullyGemmed: boolean,
         isFullyGemmedActive: boolean
-    ): RSSCalculatorOutput => {
+    ): { rrs: number, multipliers: Record<string, number> } => {
         let modifiedRRS = rrs;
         const multipliers: Record<string, number> = {};
 
@@ -107,7 +107,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
             weeksSinceAccountCreation
         );
 
-        return this.applyMultipliers(
+        const { rrs, multipliers } = this.applyMultipliers(
             effectiveReliability,
             isFullEnchanted,
             isPriorityRole,
@@ -117,5 +117,20 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
             isFullyGemmed,
             isFullyGemmedActive
         );
+
+        const confidence = this.getReliabilityConfidence(weeksSinceAccountCreation);
+        return {
+            rrs,
+            multipliers,
+            reliabilityAdjustment: {
+                observedReliability: rrs,
+                neutralReliability: NEUTRAL_RELIABILITY,
+                confidence: confidence,
+                neutralWeight: 1 - confidence,
+                effectiveReliability: effectiveReliability,
+                weeksConsidered: weeksSinceAccountCreation,
+                fullConfidenceAfterWeeks: FULL_CONFIDENCE_AFTER_WEEKS,
+            }
+        }
     }
 }

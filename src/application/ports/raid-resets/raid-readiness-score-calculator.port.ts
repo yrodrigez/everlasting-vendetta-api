@@ -15,6 +15,15 @@ export type RSSCalculatorInput = {
 export type RSSCalculatorOutput = {
     rrs: number;
     multipliers: Record<string, number>;
+    reliabilityAdjustment: {
+        observedReliability: number;
+        neutralReliability: number;
+        confidence: number;
+        neutralWeight: number;
+        effectiveReliability: number;
+        weeksConsidered: number;
+        fullConfidenceAfterWeeks: number;
+    };
 };
 
 export interface RRSCalculator {

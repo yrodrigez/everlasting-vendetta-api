@@ -11,6 +11,8 @@ type GetRecentRaidReliabilityRatingsResult = {
     weeks_considered: number
     opportunities_considered: number
 }
+
+/** @deprecated */
 export class CharacterReliabilityRepository implements CharacterReliabilityPort {
     private readonly logger = createLogger("CharacterReliabilityRepository");
     constructor(

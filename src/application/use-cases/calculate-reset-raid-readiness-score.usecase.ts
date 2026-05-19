@@ -37,6 +37,15 @@ export type CalculateResetRaidReadinessScoreUseCaseOutput = {
         weeksSinceAccountCreation: number;
         rrs: number;
         multipliers: Record<string, number>;
+        reliabilityAdjustment: {
+            observedReliability: number;
+            neutralReliability: number;
+            confidence: number;
+            neutralWeight: number;
+            effectiveReliability: number;
+            weeksConsidered: number;
+            fullConfidenceAfterWeeks: number;
+        };
     }[];
 };
 
@@ -49,7 +58,7 @@ const PRIORITY_RANKS = new Set([
     "RESP_RAIDER",
 ]);
 const GUILD_NAME = "everlasting-vendetta";
-const ROSTER_CACHE_TTL_MS = 5 * 60 * 1000;
+const ROSTER_CACHE_TTL_MS = 25 * 60 * 1000;
 const EQUIPMENT_FETCH_CONCURRENCY = 3;
 
 type GuildRosterMember = Awaited<
@@ -134,7 +143,7 @@ export class CalculateResetRaidReadinessScoreUseCase {
                     realmSlug,
                     equippedItems: equipment.equippedItems,
                 });
-                
+
                 isFullEnchanted = isFullEnchanted || resolvedIsFullEnchanted;
                 isFullyGemmed = isFullyGemmed || resolvedIsFullyGemmed;
             }
@@ -144,19 +153,18 @@ export class CalculateResetRaidReadinessScoreUseCase {
             if (!userRegistrationWeeks && userRegistrationWeeks !== 0) {
                 throw new Error(`Failed to fetch registration weeks for user ${participant.character.userId}`);
             }
-            const { rrs, multipliers } =
-                this.rrsCalculator.calculateReadinessScore({
-                    characterName,
-                    realmSlug,
-                    weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
-                    raidReliabilityRating: reliability.finalRecentReliability,
-                    isFullEnchanted,
-                    isPriorityRole,
-                    isAlter,
-                    signedUpAt: participant.participationCreatedAt,
-                    raidDateTime,
-                    isFullyGemmed,
-                });
+            const { rrs, multipliers, reliabilityAdjustment } = this.rrsCalculator.calculateReadinessScore({
+                characterName,
+                realmSlug,
+                weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
+                raidReliabilityRating: reliability.finalRecentReliability,
+                isFullEnchanted,
+                isPriorityRole,
+                isAlter,
+                signedUpAt: participant.participationCreatedAt,
+                raidDateTime,
+                isFullyGemmed,
+            });
 
             return {
                 characterName,
@@ -167,13 +175,12 @@ export class CalculateResetRaidReadinessScoreUseCase {
                 coverageScore: reliability.coverageScore,
                 weightedWeeklyScore: reliability.weightedWeeklyScore,
                 finalRecentReliability: reliability.finalRecentReliability,
-                opportunitiesConsidered:
-                    reliability.opportunitiesConsidered,
+                opportunitiesConsidered: reliability.opportunitiesConsidered,
                 weeksConsidered: reliability.weeksConsidered,
-                weeksSinceAccountCreation:
-                    userRegistrationWeeks.weeksSinceRegistration,
+                weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
                 rrs,
                 multipliers,
+                reliabilityAdjustment,
             };
         }));
 
