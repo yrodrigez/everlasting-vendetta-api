@@ -12,10 +12,9 @@ import { ITokenService } from "src/domain/services/i-token-service";
 import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
 import { IWowAccountRepository } from "@repositories/i-wow-account-repository";
-import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export class AuthenticateWithBattleNetUseCase {
-    private readonly logger = createLogger('AuthenticateWithBattleNetUseCase');
+    private readonly logger = createLogger("AuthenticateWithBattleNetUseCase");
     constructor(
         private readonly blizzardOAuthService: IBlizzardOAuthService,
         private readonly authRepository: IAuthRepository,
@@ -25,18 +24,18 @@ export class AuthenticateWithBattleNetUseCase {
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
         private readonly wowAccountRepository: IWowAccountRepository,
-        private readonly realms: { slug: string }[],
-        private readonly eventTracker: IEventTrackingService,
-    ) { }
+        private readonly realms: { slug: string }[]
+    ) {}
 
     async execute({
         bnetToken,
         expires_at,
         ipAddress,
-        userAgent
+        userAgent,
     }: AuthenticateUserWithBattleNetInput): Promise<AuthenticateUserWithBattleNetOutput> {
-        const PROVIDER = 'bnet_oauth';
-        const isValid = await this.blizzardOAuthService.checkTokenValidity(bnetToken);
+        const PROVIDER = "bnet_oauth";
+        const isValid =
+            await this.blizzardOAuthService.checkTokenValidity(bnetToken);
         if (!isValid) {
             throw new AuthError(
                 "Invalid or expired Battle.net access token",
@@ -45,23 +44,31 @@ export class AuthenticateWithBattleNetUseCase {
             );
         }
 
-        const { battletag, id } = await this.blizzardOAuthService.getUserInfo(bnetToken);
+        const { battletag, id } =
+            await this.blizzardOAuthService.getUserInfo(bnetToken);
         await this.wowAccountRepository.upsert({
             id,
-            battletag
+            battletag,
         });
         const providerUserId = id.toString();
         const providerUsername = battletag;
-        const { userId, isNewUser } = await this.authRepository.findOrCreateUser({
-            provider: PROVIDER,
-            providerUserId,
-            username: providerUsername
-        });
+        const { userId, isNewUser } =
+            await this.authRepository.findOrCreateUser({
+                provider: PROVIDER,
+                providerUserId,
+                username: providerUsername,
+            });
 
         const account = await this.wowAccountService.getWoWAccount(bnetToken);
 
-        const allCharacters = account.wow_accounts.flatMap(acc => acc.characters).filter(x => this.realms.map(({ slug }) => slug).includes(x?.realm?.slug));
-        const accountCharacters = [...new Map(allCharacters.map(c => [c.id, c])).values()];
+        const allCharacters = account.wow_accounts
+            .flatMap((acc) => acc.characters)
+            .filter((x) =>
+                this.realms.map(({ slug }) => slug).includes(x?.realm?.slug)
+            );
+        const accountCharacters = [
+            ...new Map(allCharacters.map((c) => [c.id, c])).values(),
+        ];
 
         const result = await Promise.all(
             accountCharacters.map(async (char) => {
@@ -69,37 +76,63 @@ export class AuthenticateWithBattleNetUseCase {
                     if (char.level < 10) {
                         return char;
                     }
-                    const charRealm = this.realms.find(r => r.slug === char.realm.slug);
+                    const charRealm = this.realms.find(
+                        (r) => r.slug === char.realm.slug
+                    );
 
                     if (!charRealm) {
-                        this.logger.warn(`Realm ${char.realm.slug} not found in configured realms. Skipping character ${char.name}.`);
+                        this.logger.warn(
+                            `Realm ${char.realm.slug} not found in configured realms. Skipping character ${char.name}.`
+                        );
                         return null;
                     }
 
                     if (this.realms.includes(charRealm)) {
-                        this.logger.info(`Fetching character ${char.name} on realm ${char.realm.slug} without avatar as realm is in configured realms.`);
+                        this.logger.info(
+                            `Fetching character ${char.name} on realm ${char.realm.slug} without avatar as realm is in configured realms.`
+                        );
                     }
 
-                    const character = await this.charactersService.getCharacterWithAvatar(
-                        char.realm.slug,
-                        char.name,
-                        bnetToken
+                    const character =
+                        await this.charactersService.getCharacterWithAvatar(
+                            char.realm.slug,
+                            char.name,
+                            bnetToken
+                        );
+                    this.logger.info(
+                        `Fetched character ${char.name} on realm ${char.realm.slug} with level ${character.level}`
                     );
-                    this.logger.info(`Fetched character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
 
                     return character;
                 } catch (e) {
-                    this.logger.error(`Error fetching character ${char.name} with level on realm ${char.realm.slug}`, e);
+                    this.logger.error(
+                        `Error fetching character ${char.name} with level on realm ${char.realm.slug}`,
+                        e
+                    );
                     return char;
                 }
-            }));
+            })
+        );
         const characters = result.filter(Boolean) as WoWCharacter[];
 
-        const uniqueCharacters = [...new Map(characters.map(c => [c.id, c])).values()];
-        this.logger.info(`User ${userId} has ${uniqueCharacters.length} unique characters (${characters.length} total fetched) from Battle.net account.`);
+        const uniqueCharacters = [
+            ...new Map(characters.map((c) => [c.id, c])).values(),
+        ];
+        this.logger.info(
+            `User ${userId} has ${uniqueCharacters.length} unique characters (${characters.length} total fetched) from Battle.net account.`
+        );
 
-        const members = uniqueCharacters.map(char => Member.fromWowCharacter(char as MemberCharacter, userId, account.id, 'bnet_oauth'));
-        const uniqueMembers = [...new Map(members.map(m => [m.id, m])).values()];
+        const members = uniqueCharacters.map((char) =>
+            Member.fromWowCharacter(
+                char as MemberCharacter,
+                userId,
+                account.id,
+                "bnet_oauth"
+            )
+        );
+        const uniqueMembers = [
+            ...new Map(members.map((m) => [m.id, m])).values(),
+        ];
 
         await this.memberRepository.upsertMany(uniqueMembers);
 
@@ -110,16 +143,20 @@ export class AuthenticateWithBattleNetUseCase {
             providerUsername,
             accessToken: bnetToken,
             refreshToken: null, // Battle.net does not provide a refresh token in this flow
-            expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000) // Default to 1 hour if not provided
+            expiresAt: expires_at
+                ? new Date(expires_at * 1000)
+                : new Date(Date.now() + 3600 * 1000), // Default to 1 hour if not provided
         });
 
-        const userContext = await this.userContextService.getUserContext(userId, 'bnet_oauth');
-
+        const userContext = await this.userContextService.getUserContext(
+            userId,
+            "bnet_oauth"
+        );
 
         const familyId = await this.authRepository.createTokenFamily({
             userId,
             provider: PROVIDER,
-            ipAddress
+            ipAddress,
         });
 
         const tokenPair = this.tokenService.generateTokenPair({
@@ -131,7 +168,7 @@ export class AuthenticateWithBattleNetUseCase {
             isAdmin: userContext.isAdmin,
             isTemporal: false,
             isBanned: userContext.isBanned,
-            isGuildMember: userContext.isGuildMember
+            isGuildMember: userContext.isGuildMember,
         });
 
         await this.authRepository.storeRefreshToken({
@@ -141,36 +178,18 @@ export class AuthenticateWithBattleNetUseCase {
             provider: PROVIDER,
             expiresAt: new Date(tokenPair.refreshTokenExpiry! * 1000),
             ipAddress,
-            userAgent
+            userAgent,
         });
 
-        this.logger.info(`User ${userId} authenticated successfully with Battle.net. Issued new token pair.`);
-
-        if (isNewUser) {
-            await this.eventTracker.track({
-                event_name: 'account_created',
-                event_type: 'auth',
-                user_id: userId,
-                metadata: { provider: 'battlenet' },
-                ip_address: ipAddress,
-                user_agent: userAgent,
-            });
-        }
-
-        await this.eventTracker.track({
-            event_name: 'login_success',
-            event_type: 'auth',
-            user_id: userId,
-            metadata: { provider: 'battlenet' },
-            ip_address: ipAddress,
-            user_agent: userAgent,
-        });
+        this.logger.info(
+            `User ${userId} authenticated successfully with Battle.net. Issued new token pair.`
+        );
 
         return {
             refreshToken: tokenPair.refreshToken,
             accessToken: tokenPair.accessToken,
             refreshTokenExpiresAt: tokenPair.refreshTokenExpiry,
-            accessTokenExpiresAt: tokenPair.accessTokenExpiry
+            accessTokenExpiresAt: tokenPair.accessTokenExpiry,
         };
     }
 }

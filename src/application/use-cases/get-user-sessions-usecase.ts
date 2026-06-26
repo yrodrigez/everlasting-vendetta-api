@@ -25,16 +25,14 @@ export interface GetUserSessionsOutput {
 }
 
 export class GetUserSessionsUseCase {
-    constructor(
-        private readonly authRepository: IAuthRepository
-    ) { }
+    constructor(private readonly authRepository: IAuthRepository) {}
 
     async execute(input: GetUserSessionsInput): Promise<GetUserSessionsOutput> {
         const { userId, currentJti } = input;
 
         const refreshTokens = await this.authRepository.getUserSessions(userId);
 
-        const sessions: SessionInfo[] = refreshTokens.map(token => ({
+        const sessions: SessionInfo[] = refreshTokens.map((token) => ({
             id: token.id,
             jti: token.jti,
             familyId: token.familyId,
@@ -44,12 +42,12 @@ export class GetUserSessionsUseCase {
             expiresAt: token.expiresAt.toISOString(),
             ipAddress: token.ipAddress,
             userAgent: token.userAgent,
-            isCurrentSession: currentJti ? token.jti === currentJti : false
+            isCurrentSession: currentJti ? token.jti === currentJti : false,
         }));
 
         return {
             sessions,
-            totalCount: sessions.length
+            totalCount: sessions.length,
         };
     }
 }

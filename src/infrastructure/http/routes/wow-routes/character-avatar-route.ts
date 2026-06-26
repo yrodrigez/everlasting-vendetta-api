@@ -14,22 +14,18 @@ const characterAvatarRouter = new Hono();
 characterAvatarRouter.get(
     "/:realm/:name",
     authMiddleware,
-    createRoute<
-        unknown,
-        unknown,
-        CharacterAvatarQuery,
-        CharacterAvatarParams
-    >(
+    createRoute<unknown, unknown, CharacterAvatarQuery, CharacterAvatarParams>(
         {
             functionName: "character-avatar",
             querySchema: characterAvatarQuerySchema,
             paramsSchema: characterAvatarParamsSchema,
         },
         async (ctx) => {
-            const characterAvatarController = CharacterAvatarUseCaseFactory.make();
+            const characterAvatarController =
+                CharacterAvatarUseCaseFactory.make();
             return await characterAvatarController.handle(ctx);
-        },
-    ),
+        }
+    )
 );
 
 export default characterAvatarRouter;

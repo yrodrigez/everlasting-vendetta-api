@@ -1,4 +1,7 @@
-import type { IRaidLootRepository, Raid } from "@repositories/i-raid-loot-repository";
+import type {
+    IRaidLootRepository,
+    Raid,
+} from "@repositories/i-raid-loot-repository";
 
 export class GetRaidsUseCase {
     constructor(private readonly raidLootRepository: IRaidLootRepository) {}

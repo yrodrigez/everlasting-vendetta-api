@@ -8,5 +8,8 @@ export interface IUserRepository {
     save(user: User): Promise<User>;
     update(user: User): Promise<User>;
     delete(userId: string): Promise<void>;
-    findCharactersByUserId(userId: string, realmSlug?: string): Promise<Member[]>;
+    findCharactersByUserId(
+        userId: string,
+        realmSlug?: string
+    ): Promise<Member[]>;
 }

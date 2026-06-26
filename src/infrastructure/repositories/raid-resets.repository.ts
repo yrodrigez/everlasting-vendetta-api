@@ -18,7 +18,9 @@ export class RaidResetsRepository implements RaidResetsPort {
     }> {
         const { data, error } = await this.databaseClient
             .from("raid_resets")
-            .select("id, raid_date, time, created_by:ev_member!created_by(character, id)")
+            .select(
+                "id, raid_date, time, created_by:ev_member!created_by(character, id)"
+            )
             .eq("id", resetId)
             .single<{
                 id: string;
@@ -39,7 +41,6 @@ export class RaidResetsRepository implements RaidResetsPort {
             );
         }
 
-        
         if (!data) {
             throw new Error(`Raid reset with ID ${resetId} not found`);
         }

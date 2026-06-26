@@ -35,41 +35,44 @@ type BlizzardGuildRosterResponse = {
 };
 
 export class WowGuildService extends BlizzardApi implements IWowGuildService {
-
-    private rankNumberToNameMap(rank: number): { id: number, name: string, isAlt: boolean } {
+    private rankNumberToNameMap(rank: number): {
+        id: number;
+        name: string;
+        isAlt: boolean;
+    } {
         const rankNames = [
-            'GUILD_MASTER',
-            'RAID_LEADER',
-            'RESP_COMRADE',
-            'RESP_VETERAN',
-            'RESP_RAIDER',
-            'OFFICER_ALT',
-            'BANNED',
-            'SOCIAL',
-            'ALTER',
-            'MEMBER',
-        ]
+            "GUILD_MASTER",
+            "RAID_LEADER",
+            "RESP_COMRADE",
+            "RESP_VETERAN",
+            "RESP_RAIDER",
+            "OFFICER_ALT",
+            "BANNED",
+            "SOCIAL",
+            "ALTER",
+            "MEMBER",
+        ];
 
         const name = rankNames[rank] || `RANK_${rank}`;
-        const isAlt = name.toLowerCase().includes('alt');
+        const isAlt = name.toLowerCase().includes("alt");
         return { id: rank, name, isAlt };
-    };
+    }
 
     async getGuildRoster(
         realmSlug: string,
         guildSlug: string,
-        token: string,
+        token: string
     ): Promise<WowGuildOutput> {
         const normalizedRealm = realmSlug.trim().toLowerCase();
         const normalizedGuild = guildSlug.trim().toLowerCase();
-        const namespace = findNamespace(realmSlug, 'profile')
+        const namespace = findNamespace(realmSlug, "profile");
         if (!namespace) {
             throw new Error(`Namespace not found for realm: ${realmSlug}`);
         }
 
         const url = this.createUrl(
             `/data/wow/guild/${encodeURIComponent(normalizedRealm)}/${encodeURIComponent(normalizedGuild)}/roster`,
-            { namespace },
+            { namespace }
         );
 
         const response = await fetch(url, {
@@ -81,11 +84,11 @@ export class WowGuildService extends BlizzardApi implements IWowGuildService {
         if (!response.ok) {
             const text = await response.text();
             throw new BlizzardApiError(
-                `Error fetching guild roster: ${response.status} - ${text}`,
+                `Error fetching guild roster: ${response.status} - ${text}`
             );
         }
 
-        const data = await response.json() as BlizzardGuildRosterResponse;
+        const data = (await response.json()) as BlizzardGuildRosterResponse;
 
         const guildRealm = data.guild?.realm;
         const baseRealm = {
@@ -95,7 +98,7 @@ export class WowGuildService extends BlizzardApi implements IWowGuildService {
         };
 
         const faction = normalizeFaction(
-            data.guild?.faction?.name ?? data.guild?.faction?.type,
+            data.guild?.faction?.name ?? data.guild?.faction?.type
         );
 
         const members = (data.members ?? []).map((entry) => {
@@ -126,9 +129,7 @@ export class WowGuildService extends BlizzardApi implements IWowGuildService {
     }
 }
 
-function normalizeFaction(
-    factionName?: string,
-): "Alliance" | "Horde" {
+function normalizeFaction(factionName?: string): "Alliance" | "Horde" {
     const normalized = factionName?.toLowerCase() ?? "";
     if (normalized.includes("horde")) {
         return "Horde";

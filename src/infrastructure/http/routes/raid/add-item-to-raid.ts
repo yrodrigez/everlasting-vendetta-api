@@ -15,7 +15,7 @@ type AddItemInput = z.infer<typeof addItemSchema>;
 const addItemToRaidRoute = new Hono();
 
 addItemToRaidRoute.post(
-    '/item',
+    "/item",
     authMiddleware,
     createRoute<AddItemInput>(
         {
@@ -25,7 +25,10 @@ addItemToRaidRoute.post(
         async (routeContext: RouteContext<AddItemInput>) => {
             const user = routeContext.user;
             if (!user?.isAdmin) {
-                throw { message: "Forbidden: admin access required", statusCode: 403 };
+                throw {
+                    message: "Forbidden: admin access required",
+                    statusCode: 403,
+                };
             }
 
             const useCase = AddItemToRaidUseCaseFactory.make();

@@ -1,7 +1,10 @@
 import { DatabaseClientFactory } from "@database/database-client-factory";
 import { createRoute } from "@http/hono-adapter";
 import { authMiddleware } from "@http/middleware/auth.middleware";
-import { revokeSchema, RevokeInput } from "@http/validators/schemas/auth-schema";
+import {
+    revokeSchema,
+    RevokeInput,
+} from "@http/validators/schemas/auth-schema";
 import { RevokeTokenUseCase } from "@use-cases/revoke-token-usecase";
 import { Hono } from "hono";
 import { AuthRepository } from "src/infrastructure/repositories/auth-repository";
@@ -10,7 +13,7 @@ import { EventTrackingService } from "@infrastructure/services/event-tracking-se
 const revokeRoute = new Hono();
 
 revokeRoute.post(
-    '/',
+    "/",
     authMiddleware,
     createRoute<RevokeInput>(
         {
@@ -18,21 +21,24 @@ revokeRoute.post(
             inputSchema: revokeSchema,
         },
         async ({ c, input }) => {
-            const user = c.get('user');
-            
+            const user = c.get("user");
+
             if (!user) {
-                throw new Error('User not authenticated');
+                throw new Error("User not authenticated");
             }
 
             const database = DatabaseClientFactory.getInstance();
             const authRepository = new AuthRepository(database);
             const eventTracker = new EventTrackingService();
-            const useCase = new RevokeTokenUseCase(authRepository, eventTracker);
+            const useCase = new RevokeTokenUseCase(
+                authRepository,
+                eventTracker
+            );
 
             const result = await useCase.execute({
                 userId: user.userId,
                 tokenJti: input.token_jti,
-                reason: 'manual'
+                reason: "manual",
             });
 
             return result;

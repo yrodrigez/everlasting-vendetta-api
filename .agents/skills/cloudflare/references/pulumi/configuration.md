@@ -13,28 +13,28 @@ const worker = new cloudflare.WorkerScript("my-worker", {
     module: true, // ES modules
     compatibilityDate: "2025-01-01",
     compatibilityFlags: ["nodejs_compat"],
-    
+
     // v6.x: Observability
     logpush: true, // Enable Workers Logpush
-    tailConsumers: [{service: "log-consumer"}], // Stream logs to Worker
-    
+    tailConsumers: [{ service: "log-consumer" }], // Stream logs to Worker
+
     // v6.x: Placement
-    placement: {mode: "smart"}, // Smart placement for latency optimization
-    
+    placement: { mode: "smart" }, // Smart placement for latency optimization
+
     // Bindings
-    kvNamespaceBindings: [{name: "MY_KV", namespaceId: kv.id}],
-    r2BucketBindings: [{name: "MY_BUCKET", bucketName: bucket.name}],
-    d1DatabaseBindings: [{name: "DB", databaseId: db.id}],
-    queueBindings: [{name: "MY_QUEUE", queue: queue.id}],
-    serviceBindings: [{name: "OTHER_SERVICE", service: other.name}],
-    plainTextBindings: [{name: "ENV_VAR", text: "value"}],
-    secretTextBindings: [{name: "API_KEY", text: secret}],
-    
+    kvNamespaceBindings: [{ name: "MY_KV", namespaceId: kv.id }],
+    r2BucketBindings: [{ name: "MY_BUCKET", bucketName: bucket.name }],
+    d1DatabaseBindings: [{ name: "DB", databaseId: db.id }],
+    queueBindings: [{ name: "MY_QUEUE", queue: queue.id }],
+    serviceBindings: [{ name: "OTHER_SERVICE", service: other.name }],
+    plainTextBindings: [{ name: "ENV_VAR", text: "value" }],
+    secretTextBindings: [{ name: "API_KEY", text: secret }],
+
     // v6.x: Advanced bindings
-    analyticsEngineBindings: [{name: "ANALYTICS", dataset: "my-dataset"}],
-    browserBinding: {name: "BROWSER"}, // Browser Rendering
-    aiBinding: {name: "AI"}, // Workers AI
-    hyperdriveBindings: [{name: "HYPERDRIVE", id: hyperdriveConfig.id}],
+    analyticsEngineBindings: [{ name: "ANALYTICS", dataset: "my-dataset" }],
+    browserBinding: { name: "BROWSER" }, // Browser Rendering
+    aiBinding: { name: "AI" }, // Workers AI
+    hyperdriveBindings: [{ name: "HYPERDRIVE", id: hyperdriveConfig.id }],
 });
 ```
 
@@ -51,7 +51,7 @@ const kvValue = new cloudflare.WorkersKvValue("config", {
     accountId: accountId,
     namespaceId: kv.id,
     key: "config",
-    value: JSON.stringify({foo: "bar"}),
+    value: JSON.stringify({ foo: "bar" }),
 });
 ```
 
@@ -68,30 +68,41 @@ const bucket = new cloudflare.R2Bucket("my-bucket", {
 ## D1 Databases (cloudflare.D1Database)
 
 ```typescript
-const db = new cloudflare.D1Database("my-db", {accountId, name: "my-database"});
+const db = new cloudflare.D1Database("my-db", {
+    accountId,
+    name: "my-database",
+});
 
 // Migrations via wrangler
 import * as command from "@pulumi/command";
-const migration = new command.local.Command("d1-migration", {
-    create: pulumi.interpolate`wrangler d1 execute ${db.name} --file ./schema.sql`,
-}, {dependsOn: [db]});
+const migration = new command.local.Command(
+    "d1-migration",
+    {
+        create: pulumi.interpolate`wrangler d1 execute ${db.name} --file ./schema.sql`,
+    },
+    { dependsOn: [db] }
+);
 ```
 
 ## Queues (cloudflare.Queue)
 
 ```typescript
-const queue = new cloudflare.Queue("my-queue", {accountId, name: "my-queue"});
+const queue = new cloudflare.Queue("my-queue", { accountId, name: "my-queue" });
 
 // Producer
 const producer = new cloudflare.WorkerScript("producer", {
-    accountId, name: "producer", content: code,
-    queueBindings: [{name: "MY_QUEUE", queue: queue.id}],
+    accountId,
+    name: "producer",
+    content: code,
+    queueBindings: [{ name: "MY_QUEUE", queue: queue.id }],
 });
 
 // Consumer
 const consumer = new cloudflare.WorkerScript("consumer", {
-    accountId, name: "consumer", content: code,
-    queueConsumers: [{queue: queue.name, maxBatchSize: 10, maxRetries: 3}],
+    accountId,
+    name: "consumer",
+    content: code,
+    queueConsumers: [{ queue: queue.name, maxBatchSize: 10, maxRetries: 3 }],
 });
 ```
 
@@ -99,17 +110,23 @@ const consumer = new cloudflare.WorkerScript("consumer", {
 
 ```typescript
 const pages = new cloudflare.PagesProject("my-site", {
-    accountId, name: "my-site", productionBranch: "main",
-    buildConfig: {buildCommand: "npm run build", destinationDir: "dist"},
+    accountId,
+    name: "my-site",
+    productionBranch: "main",
+    buildConfig: { buildCommand: "npm run build", destinationDir: "dist" },
     source: {
         type: "github",
-        config: {owner: "my-org", repoName: "my-repo", productionBranch: "main"},
+        config: {
+            owner: "my-org",
+            repoName: "my-repo",
+            productionBranch: "main",
+        },
     },
     deploymentConfigs: {
         production: {
-            environmentVariables: {NODE_VERSION: "18"},
-            kvNamespaces: {MY_KV: kv.id},
-            d1Databases: {DB: db.id},
+            environmentVariables: { NODE_VERSION: "18" },
+            kvNamespaces: { MY_KV: kv.id },
+            d1Databases: { DB: db.id },
         },
     },
 });
@@ -118,10 +135,14 @@ const pages = new cloudflare.PagesProject("my-site", {
 ## DNS Records (cloudflare.DnsRecord)
 
 ```typescript
-const zone = cloudflare.getZone({name: "example.com"});
+const zone = cloudflare.getZone({ name: "example.com" });
 const record = new cloudflare.DnsRecord("www", {
-    zoneId: zone.then(z => z.id), name: "www", type: "A",
-    content: "192.0.2.1", ttl: 3600, proxied: true,
+    zoneId: zone.then((z) => z.id),
+    name: "www",
+    type: "A",
+    content: "192.0.2.1",
+    ttl: 3600,
+    proxied: true,
 });
 ```
 
@@ -187,7 +208,7 @@ const deployment = new cloudflare.WorkersDeployment("prod", {
     workerId: worker.id,
     versionId: version.id,
     // Bindings applied to deployment
-    kvNamespaceBindings: [{name: "MY_KV", namespaceId: kv.id}],
+    kvNamespaceBindings: [{ name: "MY_KV", namespaceId: kv.id }],
 });
 ```
 
@@ -195,4 +216,5 @@ const deployment = new cloudflare.WorkersDeployment("prod", {
 **When NOT to use:** Simple single-version deployments (use WorkerScript)
 
 ---
+
 See: [README.md](./README.md), [api.md](./api.md), [patterns.md](./patterns.md), [gotchas.md](./gotchas.md)

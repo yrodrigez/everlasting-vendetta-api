@@ -8,29 +8,43 @@ import { OAuthProvider } from "src/domain/types/auth-types";
 import { Provider } from "@dto/auth/provider";
 import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
-export class RefreshUserSessionTokenUseCase {
+export class RefreshSessionTokenUseCase {
     constructor(
         private readonly authRepository: IAuthRepository,
         private readonly tokenService: ITokenService,
         private readonly userContextService: IUserContextService,
-        private readonly eventTracker: IEventTrackingService,
-    ) { }
+        private readonly eventTracker: IEventTrackingService
+    ) {}
 
-    async execute({ ipAddress, refreshToken, userAgent }: RefreshTokenInput): Promise<RefreshTokenOutput> {
-        const verifiedToken = this.tokenService.verifyRefreshToken(refreshToken);
+    async execute({
+        ipAddress,
+        refreshToken,
+        userAgent,
+    }: RefreshTokenInput): Promise<RefreshTokenOutput> {
+        const verifiedToken =
+            this.tokenService.verifyRefreshToken(refreshToken);
 
-        if (verifiedToken.type !== 'refresh' || !verifiedToken.jti || !verifiedToken.sub || !verifiedToken.family_id) {
+        if (
+            verifiedToken.type !== "refresh" ||
+            !verifiedToken.jti ||
+            !verifiedToken.sub ||
+            !verifiedToken.family_id
+        ) {
             throw new Error("Invalid refresh token");
         }
 
-        const currentToken = await this.authRepository.getRefreshToken(verifiedToken.jti);
+        const currentToken = await this.authRepository.getRefreshToken(
+            verifiedToken.jti
+        );
 
         if (!currentToken) {
             throw new Error("Refresh token not found"); // TODO custom error
         }
 
         if (currentToken.revoked) {
-            throw new Error("Refresh token revoked, reason: " + currentToken.revokedReason);// TODO custom error
+            throw new Error(
+                "Refresh token revoked, reason: " + currentToken.revokedReason
+            ); // TODO custom error
         }
 
         if (new Date(currentToken.expiresAt) < new Date()) {
@@ -45,20 +59,35 @@ export class RefreshUserSessionTokenUseCase {
 
         if (currentToken.isRotated) {
             // Revoke all tokens in the family
-            const inGrace = currentToken.previousValidUntil && (new Date() <= new Date(currentToken.previousValidUntil));
+            const inGrace =
+                currentToken.previousValidUntil &&
+                new Date() <= new Date(currentToken.previousValidUntil);
             if (!inGrace) {
                 await this.authRepository.revokeFamilyTokens({
                     familyId: verifiedToken.family_id,
-                    reason: 'breach_detected'
+                    reason: "breach_detected",
                 });
-                throw new Error("Refresh token revoked and not in grace period: " + JSON.stringify({ validUntil: currentToken.previousValidUntil, now: new Date() })); // TODO custom error
+                throw new Error(
+                    "Refresh token revoked and not in grace period: " +
+                        JSON.stringify({
+                            validUntil: currentToken.previousValidUntil,
+                            now: new Date(),
+                        })
+                ); // TODO custom error
             }
 
             let headToken = currentToken.rotatedTo
-                ? await this.authRepository.findTokenByJti(currentToken.rotatedTo)
+                ? await this.authRepository.findTokenByJti(
+                      currentToken.rotatedTo
+                  )
                 : null;
 
-            if (!headToken || headToken.revoked || headToken.expiresAt < new Date() || headToken.isRotated) {
+            if (
+                !headToken ||
+                headToken.revoked ||
+                headToken.expiresAt < new Date() ||
+                headToken.isRotated
+            ) {
                 headToken = await this.authRepository.getActiveFamilyToken(
                     verifiedToken.family_id,
                     verifiedToken.provider as Provider
@@ -74,7 +103,7 @@ export class RefreshUserSessionTokenUseCase {
                 userId: headToken.userId,
                 family_id: headToken.familyId,
                 provider: headToken.provider,
-                exp: Math.floor(headToken.expiresAt.getTime() / 1000)
+                exp: Math.floor(headToken.expiresAt.getTime() / 1000),
             });
 
             const newAccessToken = this.tokenService.generateAccessToken({
@@ -86,14 +115,17 @@ export class RefreshUserSessionTokenUseCase {
                 isTemporal: false,
                 isBanned: userContext.isBanned,
                 exp: Math.floor(headToken.expiresAt.getTime() / 1000),
-                isGuildMember: userContext.isGuildMember
+                isGuildMember: userContext.isGuildMember,
             } as Partial<GenerateTokenPairInput>);
 
             await this.eventTracker.track({
-                event_name: 'token_refresh',
-                event_type: 'auth',
+                event_name: "token_refresh",
+                event_type: "auth",
                 user_id: verifiedToken.sub,
-                metadata: { provider: verifiedToken.provider, was_rotated: true },
+                metadata: {
+                    provider: verifiedToken.provider,
+                    was_rotated: true,
+                },
                 ip_address: ipAddress || undefined,
                 user_agent: userAgent || undefined,
             });
@@ -103,10 +135,11 @@ export class RefreshUserSessionTokenUseCase {
                 accessTokenExpiry: newAccessToken.expiry,
                 accessTokenJti: newAccessToken.jti,
                 provider: verifiedToken.provider as OAuthProvider,
-                shouldRefreshProviderToken: userContext.shouldRefreshProviderToken,
+                shouldRefreshProviderToken:
+                    userContext.shouldRefreshProviderToken,
                 refreshToken: resignedRefresh.token,
                 refreshTokenExpiry: resignedRefresh.expiry,
-                refreshTokenJti: headToken!.jti
+                refreshTokenJti: headToken!.jti,
             };
         }
 
@@ -119,7 +152,7 @@ export class RefreshUserSessionTokenUseCase {
             isAdmin: userContext.isAdmin,
             isTemporal: false,
             isBanned: userContext.isBanned,
-            isGuildMember: userContext.isGuildMember
+            isGuildMember: userContext.isGuildMember,
         });
 
         let rotationError: unknown;
@@ -132,16 +165,17 @@ export class RefreshUserSessionTokenUseCase {
                 provider: verifiedToken.provider,
                 expiresAt: new Date(newTokenPair.refreshTokenExpiry! * 1000),
                 ipAddress: ipAddress || undefined,
-                userAgent: userAgent || undefined
+                userAgent: userAgent || undefined,
             });
         } catch (error) {
             rotationError = error;
         }
 
-        const activeFamilyToken = await this.authRepository.getActiveFamilyToken(
-            verifiedToken.family_id,
-            verifiedToken.provider as Provider
-        );
+        const activeFamilyToken =
+            await this.authRepository.getActiveFamilyToken(
+                verifiedToken.family_id,
+                verifiedToken.provider as Provider
+            );
 
         if (!activeFamilyToken) {
             if (rotationError) {
@@ -154,7 +188,7 @@ export class RefreshUserSessionTokenUseCase {
         let refreshTokenPayload = {
             refreshToken: newTokenPair.refreshToken,
             refreshTokenExpiry: newTokenPair.refreshTokenExpiry,
-            refreshTokenJti: newTokenPair.refreshTokenJti
+            refreshTokenJti: newTokenPair.refreshTokenJti,
         };
 
         if (activeFamilyToken.jti !== newTokenPair.refreshTokenJti) {
@@ -163,19 +197,19 @@ export class RefreshUserSessionTokenUseCase {
                 userId: activeFamilyToken.userId,
                 family_id: activeFamilyToken.familyId,
                 provider: activeFamilyToken.provider,
-                exp: Math.floor(activeFamilyToken.expiresAt.getTime() / 1000)
+                exp: Math.floor(activeFamilyToken.expiresAt.getTime() / 1000),
             });
 
             refreshTokenPayload = {
                 refreshToken: resignedRefresh.token,
                 refreshTokenExpiry: resignedRefresh.expiry,
-                refreshTokenJti: resignedRefresh.jti
+                refreshTokenJti: resignedRefresh.jti,
             };
         }
 
         await this.eventTracker.track({
-            event_name: 'token_refresh',
-            event_type: 'auth',
+            event_name: "token_refresh",
+            event_type: "auth",
             user_id: verifiedToken.sub,
             metadata: { provider: verifiedToken.provider, was_rotated: false },
             ip_address: ipAddress || undefined,
@@ -190,7 +224,7 @@ export class RefreshUserSessionTokenUseCase {
             refreshTokenExpiry: refreshTokenPayload.refreshTokenExpiry,
             refreshTokenJti: refreshTokenPayload.refreshTokenJti,
             provider: verifiedToken.provider as OAuthProvider,
-            shouldRefreshProviderToken: userContext.shouldRefreshProviderToken
+            shouldRefreshProviderToken: userContext.shouldRefreshProviderToken,
         };
     }
 }

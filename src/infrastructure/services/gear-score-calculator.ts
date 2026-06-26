@@ -64,9 +64,9 @@ export class GearScoreCalculator {
 
         let gearScore = Math.floor(
             ((itemLevel - coefficients.A) / coefficients.B) *
-            slotModifier *
-            GS_SCALE *
-            qualityScale
+                slotModifier *
+                GS_SCALE *
+                qualityScale
         );
 
         if (gearScore < 0) {

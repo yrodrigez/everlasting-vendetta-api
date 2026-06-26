@@ -13,14 +13,14 @@ export class WowCharacterUseCaseFactory {
         const blizzardOauthService = new BlizzardOauthService();
         const tokenRepository = new BlizzardTokenRepository(
             databaseClient,
-            blizzardOauthService,
+            blizzardOauthService
         );
         const wowCharacterService = new WowCharacterService();
 
         const useCase = new GetWowCharacterUseCase(
             memberRepository,
             tokenRepository,
-            wowCharacterService,
+            wowCharacterService
         );
 
         return new WowCharacterController(useCase);

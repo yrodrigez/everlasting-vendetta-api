@@ -3,6 +3,9 @@ import { getSelectedCharacterByDiscordIdRoute } from "./get-selected-character-b
 
 const discordRoutes = new Hono();
 
-discordRoutes.route("/:discordId/selected-character", getSelectedCharacterByDiscordIdRoute);
+discordRoutes.route(
+    "/:discordId/selected-character",
+    getSelectedCharacterByDiscordIdRoute
+);
 
 export default discordRoutes;

@@ -27,7 +27,7 @@ wowCharacterRouter.get(
             const databaseClient = DatabaseClientFactory.getInstance();
             const tokenRepository = new BlizzardTokenRepository(
                 databaseClient,
-                new BlizzardOauthService(),
+                new BlizzardOauthService()
             );
             const token = await tokenRepository.getCurrentToken();
             const equipmentService = new CharacterEquipmentService();
@@ -35,21 +35,16 @@ wowCharacterRouter.get(
             return equipmentService.fetchEquipment(
                 params.name.toLowerCase(),
                 params.realm.toLowerCase(),
-                token.access_token,
+                token.access_token
             );
-        },
-    ),
+        }
+    )
 );
 
 wowCharacterRouter.get(
     "/:realm/:name",
     authMiddleware,
-    createRoute<
-        unknown,
-        unknown,
-        WowCharacterQuery,
-        WowCharacterParams
-    >(
+    createRoute<unknown, unknown, WowCharacterQuery, WowCharacterParams>(
         {
             functionName: "wow-character",
             querySchema: wowCharacterQuerySchema,
@@ -58,8 +53,8 @@ wowCharacterRouter.get(
         async (ctx) => {
             const controller = WowCharacterUseCaseFactory.make();
             return controller.handle(ctx);
-        },
-    ),
+        }
+    )
 );
 
 export default wowCharacterRouter;

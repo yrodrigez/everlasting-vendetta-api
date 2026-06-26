@@ -22,27 +22,25 @@ sendEventRoute.post(
 
             const resolvedUserAgent = input.user_agent ?? userAgent;
 
-            const { error } = await databaseClient
-                .from("web_events")
-                .insert({
-                    event_name: input.event_name,
-                    event_type: input.event_type ?? null,
-                    user_id: user?.userId ?? null,
-                    page_url: input.page_url ?? null,
-                    page_path: input.page_path ?? null,
-                    referrer: input.referrer ?? null,
-                    metadata: input.metadata ?? {},
-                    ip_address: ipAddress,
-                    user_agent: resolvedUserAgent,
-                });
+            const { error } = await databaseClient.from("web_events").insert({
+                event_name: input.event_name,
+                event_type: input.event_type ?? null,
+                user_id: user?.userId ?? null,
+                page_url: input.page_url ?? null,
+                page_path: input.page_path ?? null,
+                referrer: input.referrer ?? null,
+                metadata: input.metadata ?? {},
+                ip_address: ipAddress,
+                user_agent: resolvedUserAgent,
+            });
 
             if (error) {
                 throw new Error(error.message);
             }
 
             return { ok: true };
-        },
-    ),
+        }
+    )
 );
 
 export default sendEventRoute;

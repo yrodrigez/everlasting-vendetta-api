@@ -6,35 +6,39 @@ import { createLogger } from "../logging/logger.ts";
 
 const environment = getEnvironment();
 export class BlizzardOauthService implements IBlizzardOAuthService {
-
     private readonly checkTokenPath = "/check_token";
     private readonly userInfoPath = "/userinfo";
     private readonly region = environment.blizzardRegion;
     private logger = createLogger("BlizzardOauthService");
     private readonly oauthUrl: string = "https://oauth.battle.net";
 
-
-    async getUserInfo(accessToken: string): Promise<{ id: number; battletag: string; }> {
+    async getUserInfo(
+        accessToken: string
+    ): Promise<{ id: number; battletag: string }> {
         const params = new URLSearchParams({
             region: this.region,
         });
 
-        const response = await fetch(`${this.oauthUrl}${this.userInfoPath}?${params.toString()}`, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${accessToken}`,
-            },
-        });
+        const response = await fetch(
+            `${this.oauthUrl}${this.userInfoPath}?${params.toString()}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
 
         if (!response.ok) {
             const text = await response.text();
             this.logger.error(`Failed to fetch user info`, undefined, { text });
-            throw new BlizzardApiError(
-                `Failed to fetch user info`,
-            );
+            throw new BlizzardApiError(`Failed to fetch user info`);
         }
 
-        const data = await response.json() as { id: number; battletag: string; };
+        const data = (await response.json()) as {
+            id: number;
+            battletag: string;
+        };
         return data;
     }
 
@@ -44,19 +48,22 @@ export class BlizzardOauthService implements IBlizzardOAuthService {
             region: this.region,
         });
 
-        const response = await fetch(`${this.oauthUrl}${this.checkTokenPath}?${params.toString()}`, {
-            method: "POST",
-        });
+        const response = await fetch(
+            `${this.oauthUrl}${this.checkTokenPath}?${params.toString()}`,
+            {
+                method: "POST",
+            }
+        );
 
         if (!response.ok) {
             const text = await response.text();
-            this.logger.error(`Failed to check token validity`, undefined, { text });
-            throw new BlizzardApiError(
-                `Failed to check token validity`,
-            );
+            this.logger.error(`Failed to check token validity`, undefined, {
+                text,
+            });
+            throw new BlizzardApiError(`Failed to check token validity`);
         }
 
-        const data = await response.json() as { scope: string[] };
+        const data = (await response.json()) as { scope: string[] };
         return data.scope && data.scope.includes("wow.profile");
     }
 
@@ -66,18 +73,18 @@ export class BlizzardOauthService implements IBlizzardOAuthService {
 
         if (!blizzardClientId || !blizzardClientSecret) {
             throw new BlizzardApiError(
-                `Blizzard Client ID or Secret not set in environment variables. Missing ${!blizzardClientId ? "BLIZZARD_CLIENT_ID" : ""
-                } ${!blizzardClientSecret
-                    ? "BLIZZARD_CLIENT_SECRET"
-                    : ""
-                } environment variable(s)`,
+                `Blizzard Client ID or Secret not set in environment variables. Missing ${
+                    !blizzardClientId ? "BLIZZARD_CLIENT_ID" : ""
+                } ${
+                    !blizzardClientSecret ? "BLIZZARD_CLIENT_SECRET" : ""
+                } environment variable(s)`
             );
         }
 
         headers.set("Content-Type", "application/x-www-form-urlencoded");
         headers.set(
             "Authorization",
-            "Basic " + btoa(blizzardClientId + ":" + blizzardClientSecret),
+            "Basic " + btoa(blizzardClientId + ":" + blizzardClientSecret)
         );
 
         return headers;
@@ -98,10 +105,10 @@ export class BlizzardOauthService implements IBlizzardOAuthService {
         if (!response.ok) {
             const text = await response.text();
             throw new BlizzardApiError(
-                `Failed to fetch new token: ${response.statusText} - ${text}`,
+                `Failed to fetch new token: ${response.statusText} - ${text}`
             );
         }
-        const data = await response.json() as any;
+        const data = (await response.json()) as any;
         return BlizzardToken.fromOAuthResponse(data);
     }
 }

@@ -33,8 +33,8 @@ export class WoWCharacter {
         public readonly playable_class: PlayableClass,
         public readonly faction: string,
         public readonly guild?: Guild,
-        public readonly avatar?: string,
-    ) { }
+        public readonly avatar?: string
+    ) {}
 
     withAvatar(avatar: string): WoWCharacter {
         return new WoWCharacter(
@@ -48,7 +48,7 @@ export class WoWCharacter {
             this.playable_class,
             this.faction,
             this.guild,
-            avatar,
+            avatar
         );
     }
 
@@ -92,12 +92,12 @@ export class WoWCharacter {
             data.faction?.type,
             data.guild
                 ? {
-                    name: data.guild.name,
-                    id: data.guild.id,
-                    rank: data.guild.rank,
-                }
+                      name: data.guild.name,
+                      id: data.guild.id,
+                      rank: data.guild.rank,
+                  }
                 : undefined,
-            undefined, // avatar is not provided in the API response
+            undefined // avatar is not provided in the API response
         );
 
         if (data.selectedRole) {

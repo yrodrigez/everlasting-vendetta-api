@@ -96,8 +96,12 @@ export class PredictionMarketRepository implements PredictionMarketPort {
         private readonly database: SQLDatabaseClientFactory,
         private readonly logger = createLogger("PredictionMarketRepository")
     ) {}
-    
-    async predictCurrentPayout(userId: string, marketId: string, outcomeId: string): Promise<number> {
+
+    async predictCurrentPayout(
+        userId: string,
+        marketId: string,
+        outcomeId: string
+    ): Promise<number> {
         const query = `
             with request as (
                 select $1::uuid as user_id, $2::uuid as market_id, $3::uuid as outcome_id
@@ -136,11 +140,10 @@ export class PredictionMarketRepository implements PredictionMarketPort {
         `;
 
         try {
-            const [record] = await this.database.query<{ predicted_payout: number }>(
-                query,
-                [userId, marketId, outcomeId]
-            );
-            
+            const [record] = await this.database.query<{
+                predicted_payout: number;
+            }>(query, [userId, marketId, outcomeId]);
+
             return record ? record.predicted_payout : 0;
         } catch (error) {
             this.logger.error(

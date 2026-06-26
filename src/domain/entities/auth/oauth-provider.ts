@@ -44,7 +44,7 @@ export class OAuthProvider implements IOauthProvider {
         createdAt,
         updatedAt,
         lastSyncAt,
-        metadata
+        metadata,
     }: IOauthProvider) {
         this.id = id;
         this.userId = userId;
@@ -75,7 +75,7 @@ export class OAuthProvider implements IOauthProvider {
             createdAt: data.created_at,
             updatedAt: data.updated_at,
             lastSyncAt: data.last_sync_at,
-            metadata: data.metadata
+            metadata: data.metadata,
         });
     }
 
@@ -93,9 +93,7 @@ export class OAuthProvider implements IOauthProvider {
             created_at: this.createdAt,
             updated_at: this.updatedAt,
             last_sync_at: this.lastSyncAt,
-            metadata: this.metadata
+            metadata: this.metadata,
         };
     }
-
-
 }

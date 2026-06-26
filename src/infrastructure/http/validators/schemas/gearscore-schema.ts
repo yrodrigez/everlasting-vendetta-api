@@ -2,10 +2,12 @@ import { z } from "zod/v3";
 
 export const calculateGearScoreSchema = z.object({
     characters: z
-        .array(z.object({
-            name: z.string().min(1, "Character name cannot be empty"),
-            realm: z.string().min(1, "Character realm cannot be empty"),
-        }))
+        .array(
+            z.object({
+                name: z.string().min(1, "Character name cannot be empty"),
+                realm: z.string().min(1, "Character realm cannot be empty"),
+            })
+        )
         .min(1, "At least one character is required"),
     forceRefresh: z.boolean().optional(),
 });

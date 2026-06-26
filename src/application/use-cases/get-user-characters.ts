@@ -10,22 +10,34 @@ export class GetUserCharacters {
 
     constructor(
         private usersRepository: IUserRepository,
-        private charactersService: IWowCharacterService,
-    ) { }
+        private charactersService: IWowCharacterService
+    ) {}
 
-    async execute({ userId, realmSlug, accessToken }: {
+    async execute({
+        userId,
+        realmSlug,
+        accessToken,
+    }: {
         userId: string;
         accessToken: string;
         realmSlug: string;
     }): Promise<WoWCharacter[]> {
-
         // Get the user's characters from the database
         let storedCharacters: Member[];
         try {
-            storedCharacters = await this.usersRepository.findCharactersByUserId(userId, realmSlug);
-            this.logger.info(`Found ${storedCharacters.length} stored character(s) for user ${userId}`);
+            storedCharacters =
+                await this.usersRepository.findCharactersByUserId(
+                    userId,
+                    realmSlug
+                );
+            this.logger.info(
+                `Found ${storedCharacters.length} stored character(s) for user ${userId}`
+            );
         } catch (error) {
-            this.logger.error(`Database error fetching characters for user ${userId}`, error);
+            this.logger.error(
+                `Database error fetching characters for user ${userId}`,
+                error
+            );
             if (error instanceof UserRepositoryError) {
                 throw error;
             }
@@ -50,7 +62,9 @@ export class GetUserCharacters {
 
                         // Skip low-level characters
                         if (char.level < 10) {
-                            this.logger.debug(`Skipping low-level character ${char.name} (level ${char.level})`);
+                            this.logger.debug(
+                                `Skipping low-level character ${char.name} (level ${char.level})`
+                            );
                             return new WoWCharacter(
                                 char.id,
                                 member.wowAccountId,
@@ -58,26 +72,35 @@ export class GetUserCharacters {
                                 char.realm,
                                 char.level,
                                 char.last_login_timestamp,
-                                { name: char.character_class.name || '', id: 0 },
+                                {
+                                    name: char.character_class.name || "",
+                                    id: 0,
+                                },
                                 { name: char.playable_class.name, id: 0 },
                                 char.faction,
                                 char.guild,
-                                char.avatar,
+                                char.avatar
                             );
                         }
 
                         // Fetch updated character data from Blizzard (with avatar)
-                        const character = await this.charactersService.getCharacterWithAvatar(
-                            char.realm.slug,
-                            char.name,
-                            accessToken
-                        );
+                        const character =
+                            await this.charactersService.getCharacterWithAvatar(
+                                char.realm.slug,
+                                char.name,
+                                accessToken
+                            );
 
-                        this.logger.info(`Fetched updated character ${char.name} on realm ${char.realm.slug} with level ${character.level}`);
+                        this.logger.info(
+                            `Fetched updated character ${char.name} on realm ${char.realm.slug} with level ${character.level}`
+                        );
 
                         return character;
                     } catch (error) {
-                        this.logger.error(`Error fetching updated data for character ${member.character.name}`, error);
+                        this.logger.error(
+                            `Error fetching updated data for character ${member.character.name}`,
+                            error
+                        );
                         // Return the stored character data as fallback
                         const char = member.character;
                         return new WoWCharacter(
@@ -87,20 +110,25 @@ export class GetUserCharacters {
                             char.realm,
                             char.level,
                             char.last_login_timestamp,
-                            { name: char.character_class.name || '', id: 0 },
+                            { name: char.character_class.name || "", id: 0 },
                             { name: char.playable_class.name, id: 0 },
                             char.faction,
                             char.guild,
-                            char.avatar,
+                            char.avatar
                         );
                     }
                 })
             );
         } catch (error) {
-            this.logger.error(`Error updating characters from Blizzard API for user ${userId}`, error);
+            this.logger.error(
+                `Error updating characters from Blizzard API for user ${userId}`,
+                error
+            );
             // If Blizzard API fails completely, return stored characters as fallback
-            this.logger.warn(`Returning stored character data as fallback for user ${userId}`);
-            return storedCharacters.map(member => {
+            this.logger.warn(
+                `Returning stored character data as fallback for user ${userId}`
+            );
+            return storedCharacters.map((member) => {
                 const char = member.character;
                 return new WoWCharacter(
                     char.id,
@@ -109,18 +137,22 @@ export class GetUserCharacters {
                     char.realm,
                     char.level,
                     char.last_login_timestamp,
-                    { name: char.character_class.name || '', id: 0 },
+                    { name: char.character_class.name || "", id: 0 },
                     { name: char.playable_class.name, id: 0 },
                     char.faction,
                     char.guild,
-                    char.avatar,
+                    char.avatar
                 );
             });
         }
 
-        const validCharacters = updatedCharacters.filter(Boolean) as WoWCharacter[];
+        const validCharacters = updatedCharacters.filter(
+            Boolean
+        ) as WoWCharacter[];
 
-        this.logger.info(`Returning ${validCharacters.length} updated character(s) for user ${userId}`);
+        this.logger.info(
+            `Returning ${validCharacters.length} updated character(s) for user ${userId}`
+        );
 
         return validCharacters;
     }

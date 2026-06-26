@@ -7,7 +7,7 @@ interface LinkOAuthAccountProps {
     providerEmail: string;
     providerUsername: string;
     accessToken: string;
-    refreshToken?: string;  
+    refreshToken?: string;
     expiresAt?: Date;
     metadata?: Record<string, any>;
 }
@@ -15,7 +15,7 @@ interface LinkOAuthAccountProps {
 export class LinkOAuthAccount implements LinkOAuthAccountProps {
     readonly userId: string;
     readonly provider: Provider;
-    readonly providerUserId: string
+    readonly providerUserId: string;
     readonly providerEmail: string;
     readonly providerUsername: string;
     readonly accessToken: string;
@@ -32,8 +32,8 @@ export class LinkOAuthAccount implements LinkOAuthAccountProps {
         accessToken,
         refreshToken,
         expiresAt,
-        metadata
-     }: LinkOAuthAccountProps) {
+        metadata,
+    }: LinkOAuthAccountProps) {
         this.userId = userId;
         this.provider = provider;
         this.providerUserId = providerUserId;

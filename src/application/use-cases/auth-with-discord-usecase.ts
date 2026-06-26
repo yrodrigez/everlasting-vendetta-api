@@ -5,17 +5,15 @@ import { IAuthRepository } from "@repositories/i-auth-repository";
 import { ITokenService } from "src/domain/services/i-token-service";
 import { IUserContextService } from "src/domain/services/i-user-context-service";
 import { createLogger } from "src/infrastructure/logging";
-import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
 export class AuthenticateWithDiscordUseCase {
-    private readonly logger = createLogger('AuthenticateWithDiscordUseCase');
+    private readonly logger = createLogger("AuthenticateWithDiscordUseCase");
 
     constructor(
         private readonly authRepository: IAuthRepository,
         private readonly tokenService: ITokenService,
-        private readonly userContextService: IUserContextService,
-        private readonly eventTracker: IEventTrackingService,
-    ) { }
+        private readonly userContextService: IUserContextService
+    ) {}
 
     async execute({
         discordToken,
@@ -25,7 +23,7 @@ export class AuthenticateWithDiscordUseCase {
         refreshToken,
     }: AuthenticateUserWithDiscordInput): Promise<AuthenticateUserWithDiscordOutput> {
         try {
-            const PROVIDER = 'discord_oauth';
+            const PROVIDER = "discord_oauth";
             // Validate token by fetching Discord user info
             const userInfo = await this.getDiscordUserInfo(discordToken);
             if (!userInfo) {
@@ -40,11 +38,12 @@ export class AuthenticateWithDiscordUseCase {
             const providerUsername = userInfo.username;
 
             // Find or create user
-            const { userId, isNewUser } = await this.authRepository.findOrCreateUser({
-                provider: PROVIDER,
-                providerUserId,
-                username: providerUsername
-            });
+            const { userId, isNewUser } =
+                await this.authRepository.findOrCreateUser({
+                    provider: PROVIDER,
+                    providerUserId,
+                    username: providerUsername,
+                });
 
             // Store Discord token
             await this.authRepository.storeOauthToken({
@@ -54,17 +53,22 @@ export class AuthenticateWithDiscordUseCase {
                 providerUsername,
                 accessToken: discordToken,
                 refreshToken: refreshToken || null,
-                expiresAt: expires_at ? new Date(expires_at * 1000) : new Date(Date.now() + 3600 * 1000)
+                expiresAt: expires_at
+                    ? new Date(expires_at * 1000)
+                    : new Date(Date.now() + 3600 * 1000),
             });
 
             // Get complete user context using the domain service
-            const userContext = await this.userContextService.getUserContext(userId, PROVIDER);
+            const userContext = await this.userContextService.getUserContext(
+                userId,
+                PROVIDER
+            );
 
             // Create token family for session management
             const familyId = await this.authRepository.createTokenFamily({
                 userId,
                 provider: PROVIDER,
-                ipAddress
+                ipAddress,
             });
 
             // Generate token pair
@@ -77,7 +81,7 @@ export class AuthenticateWithDiscordUseCase {
                 isAdmin: userContext.isAdmin,
                 isTemporal: false,
                 isBanned: userContext.isBanned,
-                isGuildMember: userContext.isGuildMember
+                isGuildMember: userContext.isGuildMember,
             });
 
             // Store refresh token
@@ -88,64 +92,40 @@ export class AuthenticateWithDiscordUseCase {
                 provider: PROVIDER,
                 expiresAt: new Date(tokenPair.refreshTokenExpiry! * 1000),
                 ipAddress,
-                userAgent
+                userAgent,
             });
 
-            this.logger.info(`User ${userId} authenticated successfully with Discord. Issued new token pair.`);
-
-            if (isNewUser) {
-                await this.eventTracker.track({
-                    event_name: 'account_created',
-                    event_type: 'auth',
-                    user_id: userId,
-                    metadata: { provider: 'discord' },
-                    ip_address: ipAddress,
-                    user_agent: userAgent,
-                });
-            }
-
-            await this.eventTracker.track({
-                event_name: 'login_success',
-                event_type: 'auth',
-                user_id: userId,
-                metadata: { provider: 'discord' },
-                ip_address: ipAddress,
-                user_agent: userAgent,
-            });
+            this.logger.info(
+                `User ${userId} authenticated successfully with Discord. Issued new token pair.`
+            );
 
             return {
                 refreshToken: tokenPair.refreshToken,
                 accessToken: tokenPair.accessToken,
                 refreshTokenExpiresAt: tokenPair.refreshTokenExpiry,
-                accessTokenExpiresAt: tokenPair.accessTokenExpiry
+                accessTokenExpiresAt: tokenPair.accessTokenExpiry,
             };
         } catch (error) {
-            this.logger.error('Discord authentication failed', error);
-
-            await this.eventTracker.track({
-                event_name: 'login_failure',
-                event_type: 'auth',
-                metadata: { provider: 'discord', reason: error instanceof AuthError ? error.message : 'Unknown error' },
-                ip_address: ipAddress,
-                user_agent: userAgent,
-            });
+            this.logger.error("Discord authentication failed", error);
 
             if (error instanceof AuthError) {
                 throw error;
             }
             throw new AuthError(
-                'Discord authentication failed',
-                'AUTH_ERROR',
+                "Discord authentication failed",
+                "AUTH_ERROR",
                 500
             );
         }
     }
 
-    private async getDiscordUserInfo(token: string): Promise<{ id: string; username: string } | null> {
+    private async getDiscordUserInfo(
+        token: string
+    ): Promise<{ id: string; username: string } | null> {
         try {
-            const response = await fetch('https://discord.com/api/users/@me', {
+            const response = await fetch("https://discord.com/api/users/@me", {
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -154,13 +134,16 @@ export class AuthenticateWithDiscordUseCase {
                 return null;
             }
 
-            const data = await response.json() as { id: string; username: string };
+            const data = (await response.json()) as {
+                id: string;
+                username: string;
+            };
             return {
                 id: data.id,
-                username: data.username
+                username: data.username,
             };
         } catch (error) {
-            this.logger.error('Failed to fetch Discord user info', error);
+            this.logger.error("Failed to fetch Discord user info", error);
             return null;
         }
     }

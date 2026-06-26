@@ -25,7 +25,10 @@ export async function vxAdminMiddleware(context: Context, next: Next) {
         return context.json({ error: "Unauthorized" }, 401);
     }
 
-    if (!user.roles?.includes("GUILD_MASTER") || !user.roles?.includes("VX_ADMIN")) {
+    if (
+        !user.roles?.includes("GUILD_MASTER") ||
+        !user.roles?.includes("VX_ADMIN")
+    ) {
         return context.json({ error: "Guild master access required" }, 403);
     }
 

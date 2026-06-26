@@ -49,5 +49,7 @@ export abstract class BaseValidator implements Validator {
         return { success: true };
     }
 
-    protected abstract doValidate(context: ValidationContext): Promise<ValidationResult>;
+    protected abstract doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult>;
 }

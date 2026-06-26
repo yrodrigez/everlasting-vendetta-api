@@ -16,6 +16,7 @@ realmsRoute.get(
             const realms = await useCase.execute();
             return { realms };
         }
-    ));
+    )
+);
 
 export { realmsRoute };

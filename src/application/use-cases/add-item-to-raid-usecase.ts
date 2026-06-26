@@ -13,10 +13,12 @@ export interface AddItemToRaidOutput {
         id: number;
         name: string;
     };
-    boss: {
-        id: string;
-        name: string;
-    } | undefined;
+    boss:
+        | {
+              id: string;
+              name: string;
+          }
+        | undefined;
     raidId: string;
 }
 
@@ -25,8 +27,8 @@ export class AddItemToRaidUseCase {
 
     constructor(
         private readonly wowHeadService: IWoWHeadService,
-        private readonly raidLootRepository: IRaidLootRepository,
-    ) { }
+        private readonly raidLootRepository: IRaidLootRepository
+    ) {}
 
     async execute(input: AddItemToRaidInput): Promise<AddItemToRaidOutput> {
         const { itemId, bossName, raidId } = input;
@@ -54,15 +56,23 @@ export class AddItemToRaidUseCase {
         if (bossName) {
             boss = await this.raidLootRepository.upsertBoss(bossName);
             await this.raidLootRepository.linkItemToBoss(itemId, boss.id);
-            this.logger.info("Item linked to boss successfully", { itemId, bossName, raidId });
+            this.logger.info("Item linked to boss successfully", {
+                itemId,
+                bossName,
+                raidId,
+            });
         }
 
-
-        this.logger.info("Item added to raid successfully", { itemId, bossName, raidId });
+        this.logger.info("Item added to raid successfully", {
+            itemId,
+            bossName,
+            raidId,
+        });
 
         return {
             item: { id: itemId, name: itemDetails.name },
-            boss: ((bossName && boss) ? { id: boss.id, name: boss.name } : undefined),
+            boss:
+                bossName && boss ? { id: boss.id, name: boss.name } : undefined,
             raidId,
         };
     }

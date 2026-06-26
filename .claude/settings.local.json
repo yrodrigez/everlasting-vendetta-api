@@ -1,13 +1,13 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(pnpm add:*)",
-      "Bash(npx tsc --noEmit)",
-      "WebFetch(domain:nether.wowhead.com)",
-      "Bash(pnpm test:*)",
-      "Bash(pnpm type-check:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
+    "permissions": {
+        "allow": [
+            "Bash(pnpm add:*)",
+            "Bash(npx tsc --noEmit)",
+            "WebFetch(domain:nether.wowhead.com)",
+            "Bash(pnpm test:*)",
+            "Bash(pnpm type-check:*)"
+        ],
+        "deny": [],
+        "ask": []
+    }
 }

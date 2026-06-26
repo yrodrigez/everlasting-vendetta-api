@@ -7,7 +7,13 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 import { ValidationChainBuilder } from "./validators/validation-chain-builder";
 import { UserPayload } from "./middleware/auth.middleware";
 
-export interface RouteConfig<TInput, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown> {
+export interface RouteConfig<
+    TInput,
+    TQuery = unknown,
+    TParams = unknown,
+    THeaders = unknown,
+    TCookies = unknown,
+> {
     functionName: string;
     inputSchema?: ZodTypeAny;
     querySchema?: ZodTypeAny;
@@ -16,7 +22,13 @@ export interface RouteConfig<TInput, TQuery = unknown, TParams = unknown, THeade
     cookiesSchema?: ZodTypeAny;
 }
 
-export interface RouteContext<TInput, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown> {
+export interface RouteContext<
+    TInput,
+    TQuery = unknown,
+    TParams = unknown,
+    THeaders = unknown,
+    TCookies = unknown,
+> {
     input: TInput;
     query: TQuery;
     params: TParams;
@@ -34,14 +46,23 @@ export interface RouteContext<TInput, TQuery = unknown, TParams = unknown, THead
 /**
  * Creates a Hono route handler with validation and error handling.
  * Template parameters allow typing of input, query, params, headers, and cookies.
- * 
+ *
  * @param config {@link RouteConfig}
  * @param handler {@link RouteContext} => Promise<TOutput>
- * @returns 
+ * @returns
  */
-export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknown, TParams = unknown, THeaders = unknown, TCookies = unknown>(
+export function createRoute<
+    TInput = unknown,
+    TOutput = unknown,
+    TQuery = unknown,
+    TParams = unknown,
+    THeaders = unknown,
+    TCookies = unknown,
+>(
     config: RouteConfig<TInput, TQuery, TParams, THeaders, TCookies>,
-    handler: (ctx: RouteContext<TInput, TQuery, TParams, THeaders, TCookies>) => Promise<TOutput>
+    handler: (
+        ctx: RouteContext<TInput, TQuery, TParams, THeaders, TCookies>
+    ) => Promise<TOutput>
 ) {
     return async (honoContext: Context) => {
         const requestId =
@@ -52,8 +73,9 @@ export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknow
         const logger = createLogger(config.functionName);
         const startTime = Date.now();
 
-        const ipAddress = honoContext.req.header("CF-Connecting-IP") ||
-            honoContext.req.header("X-Forwarded-For")?.split(',')[0].trim() ||
+        const ipAddress =
+            honoContext.req.header("CF-Connecting-IP") ||
+            honoContext.req.header("X-Forwarded-For")?.split(",")[0].trim() ||
             honoContext.req.header("X-Real-IP") ||
             "127.0.0.1";
 
@@ -81,7 +103,7 @@ export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknow
                 params?: TParams;
                 headers?: THeaders;
                 cookies?: TCookies;
-            }
+            };
 
             const validationContext = {
                 c: honoContext,
@@ -90,7 +112,8 @@ export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknow
                 validatedData,
             };
 
-            const validationResult = await validationChain.validate(validationContext);
+            const validationResult =
+                await validationChain.validate(validationContext);
 
             if (!validationResult.success) {
                 honoContext.header("X-Request-ID", requestId);
@@ -121,7 +144,8 @@ export function createRoute<TInput = unknown, TOutput = unknown, TQuery = unknow
                 logger,
                 requestId,
                 c: honoContext,
-                getHeader: (name: string) => honoContext.req.header(name) || null,
+                getHeader: (name: string) =>
+                    honoContext.req.header(name) || null,
                 ipAddress,
                 userAgent,
             });

@@ -5,27 +5,46 @@ import { IMemberRepository } from "@repositories/i-member-repository";
 import ITokenRepository from "@repositories/i-token-repository";
 import { IEventTrackingService } from "src/domain/services/i-event-tracking-service";
 
-const logger = createLogger('LinkCharacterToUserUseCase');
+const logger = createLogger("LinkCharacterToUserUseCase");
 
 export class LinkCharacterToUserUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly characterValidationService: ICharacterValidationService,
         private readonly tokenRepository: ITokenRepository,
-        private readonly eventTracker: IEventTrackingService,
-    ) { }
+        private readonly eventTracker: IEventTrackingService
+    ) {}
 
-    async execute({ userId, characterName, realmSlug }: { userId: string; characterName: string; realmSlug: string; }): Promise<Member[]> {
-
-        const isRealmValid = await this.characterValidationService.validateRealm(realmSlug);
+    async execute({
+        userId,
+        characterName,
+        realmSlug,
+    }: {
+        userId: string;
+        characterName: string;
+        realmSlug: string;
+    }): Promise<Member[]> {
+        const isRealmValid =
+            await this.characterValidationService.validateRealm(realmSlug);
         if (!isRealmValid) {
             throw new Error(`Realm '${realmSlug}' is not allowed.`);
         }
         const bnetToken = await this.tokenRepository.getCurrentToken();
-        const character = await this.characterValidationService.validateCharacterExists(realmSlug, characterName, bnetToken.access_token);
-        const availability = await this.characterValidationService.isCharacterAvailable(character.id, userId);
+        const character =
+            await this.characterValidationService.validateCharacterExists(
+                realmSlug,
+                characterName,
+                bnetToken.access_token
+            );
+        const availability =
+            await this.characterValidationService.isCharacterAvailable(
+                character.id,
+                userId
+            );
         if (!availability.available) {
-            throw new Error(`Character '${characterName}' on realm '${realmSlug}' is already linked by another user.`);
+            throw new Error(
+                `Character '${characterName}' on realm '${realmSlug}' is already linked by another user.`
+            );
         }
 
         const memberCharacter: MemberCharacter = {
@@ -49,20 +68,21 @@ export class LinkCharacterToUserUseCase {
             memberCharacter,
             userId,
             0, // wow_account_id = 0 for Discord-linked characters
-            'discord_oauth'
+            "discord_oauth"
         );
 
         await this.memberRepository.upsert(newMember);
         logger.info(`Character ${characterName} linked to user ${userId}`);
 
         await this.eventTracker.track({
-            event_name: 'character_linked',
-            event_type: 'action',
+            event_name: "character_linked",
+            event_type: "action",
             user_id: userId,
             metadata: { characterName, realmSlug },
         });
 
-        const allLinkedCharacters = await this.memberRepository.findAllByUserId(userId);
+        const allLinkedCharacters =
+            await this.memberRepository.findAllByUserId(userId);
 
         return allLinkedCharacters;
     }

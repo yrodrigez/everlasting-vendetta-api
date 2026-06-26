@@ -5,7 +5,7 @@ export class User {
         public readonly userName: string | null = null,
         public readonly avatarUrl: string | null = null,
         public readonly createdAt: Date | null = null,
-        public readonly lastModified: Date | null = null,
+        public readonly lastModified: Date | null = null
     ) {}
 
     static fromDatabase(row: DatabaseUser): User {
@@ -15,7 +15,7 @@ export class User {
             row.user_name ?? null,
             row.avatar_url ?? null,
             row.created_at ? new Date(row.created_at) : null,
-            row.last_modified ? new Date(row.last_modified) : null,
+            row.last_modified ? new Date(row.last_modified) : null
         );
     }
 

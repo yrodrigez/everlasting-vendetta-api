@@ -65,7 +65,6 @@ type GuildRosterMember = Awaited<
     ReturnType<IWowGuildService["getGuildRoster"]>
 >["members"][number];
 
-
 export class CalculateResetRaidReadinessScoreUseCase {
     private readonly equipmentFetchLimit = pLimit(EQUIPMENT_FETCH_CONCURRENCY);
     private readonly logger = createLogger(
@@ -87,8 +86,8 @@ export class CalculateResetRaidReadinessScoreUseCase {
         private readonly wowGuildService: IWowGuildService,
         private readonly userRegistrationWeeksPort: UserRegistrationWeeksPort,
         private readonly highestGSPort: HighestGSPort,
-        private readonly gearScoreResolver: GearScoreResolver,
-    ) { }
+        private readonly gearScoreResolver: GearScoreResolver
+    ) {}
 
     async execute({
         resetId,
@@ -103,86 +102,111 @@ export class CalculateResetRaidReadinessScoreUseCase {
         this.logger.info(
             `Raid date and time parsed as ${raidDateTime.toISOString()}`
         );
-        const participants = await this.raidResetsParticipantPort.getParticipantsByResetId(resetId);
-        this.logger.info(`Fetched ${participants.length} participants for reset ${resetId}.`);
+        const participants =
+            await this.raidResetsParticipantPort.getParticipantsByResetId(
+                resetId
+            );
+        this.logger.info(
+            `Fetched ${participants.length} participants for reset ${resetId}.`
+        );
         const token = await this.tokenRepository.getCurrentToken();
         const rosterByCharacter = await this.getGuildRoster(
             reset.createdBy.realmSlug,
             token.access_token
         );
 
-        const reliabilityByCharacter = await this.getReliabilityByCharacter(participants);
+        const reliabilityByCharacter =
+            await this.getReliabilityByCharacter(participants);
 
-        const participantScores = await Promise.all(participants.map(async (participant) => {
-            const characterName = participant.character.name;
-            const realmSlug = participant.character.realmSlug;
-            const characterKey = this.getCharacterKey(
-                realmSlug,
-                characterName
-            );
-            const rosterMember = rosterByCharacter.get(characterKey);
-            const reliability = reliabilityByCharacter.get(characterKey) ?? this.getDefaultReliability(characterName, realmSlug);
-            const highestGS = await this.highestGSPort.getHighestGS(
-                characterName,
-                realmSlug
-            );
-            let isFullEnchanted = highestGS?.details.isFullEnchanted === true;
-            let isFullyGemmed = highestGS?.details.isFullyGemmed === true;
-
-            if (!isFullEnchanted || !isFullyGemmed) {
-                const equipment = await this.equipmentFetchLimit(() =>
-                    this.characterEquipmentService.fetchEquipment(
-                        characterName.toLowerCase(),
-                        realmSlug.toLowerCase(),
-                        token.access_token
-                    )
-                );
-
-                const { isFullEnchanted: resolvedIsFullEnchanted, isFullyGemmed: resolvedIsFullyGemmed } = await this.gearScoreResolver.resolve({
-                    characterName: equipment.characterName,
+        const participantScores = await Promise.all(
+            participants.map(async (participant) => {
+                const characterName = participant.character.name;
+                const realmSlug = participant.character.realmSlug;
+                const characterKey = this.getCharacterKey(
                     realmSlug,
-                    equippedItems: equipment.equippedItems,
-                });
+                    characterName
+                );
+                const rosterMember = rosterByCharacter.get(characterKey);
+                const reliability =
+                    reliabilityByCharacter.get(characterKey) ??
+                    this.getDefaultReliability(characterName, realmSlug);
+                const highestGS = await this.highestGSPort.getHighestGS(
+                    characterName,
+                    realmSlug
+                );
+                let isFullEnchanted =
+                    highestGS?.details.isFullEnchanted === true;
+                let isFullyGemmed = highestGS?.details.isFullyGemmed === true;
 
-                isFullEnchanted = isFullEnchanted || resolvedIsFullEnchanted;
-                isFullyGemmed = isFullyGemmed || resolvedIsFullyGemmed;
-            }
-            const isPriorityRole = this.isPriorityRole(rosterMember);
-            const isAlter = rosterMember?.rank?.isAlt ?? false;
-            const userRegistrationWeeks = await this.userRegistrationWeeksPort.getUserRegistrationWeeks(participant.character.userId);
-            if (!userRegistrationWeeks && userRegistrationWeeks !== 0) {
-                throw new Error(`Failed to fetch registration weeks for user ${participant.character.userId}`);
-            }
-            const { rrs, multipliers, reliabilityAdjustment } = this.rrsCalculator.calculateReadinessScore({
-                characterName,
-                realmSlug,
-                weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
-                raidReliabilityRating: reliability.finalRecentReliability,
-                isFullEnchanted,
-                isPriorityRole,
-                isAlter,
-                signedUpAt: participant.participationCreatedAt,
-                raidDateTime,
-                isFullyGemmed,
-            });
+                if (!isFullEnchanted || !isFullyGemmed) {
+                    const equipment = await this.equipmentFetchLimit(() =>
+                        this.characterEquipmentService.fetchEquipment(
+                            characterName.toLowerCase(),
+                            realmSlug.toLowerCase(),
+                            token.access_token
+                        )
+                    );
 
-            return {
-                characterName,
-                realmSlug,
-                isPriorityRole,
-                isAlter,
-                isFullEnchanted,
-                coverageScore: reliability.coverageScore,
-                weightedWeeklyScore: reliability.weightedWeeklyScore,
-                finalRecentReliability: reliability.finalRecentReliability,
-                opportunitiesConsidered: reliability.opportunitiesConsidered,
-                weeksConsidered: reliability.weeksConsidered,
-                weeksSinceAccountCreation: userRegistrationWeeks.weeksSinceRegistration,
-                rrs,
-                multipliers,
-                reliabilityAdjustment,
-            };
-        }));
+                    const {
+                        isFullEnchanted: resolvedIsFullEnchanted,
+                        isFullyGemmed: resolvedIsFullyGemmed,
+                    } = await this.gearScoreResolver.resolve({
+                        characterName: equipment.characterName,
+                        realmSlug,
+                        equippedItems: equipment.equippedItems,
+                    });
+
+                    isFullEnchanted =
+                        isFullEnchanted || resolvedIsFullEnchanted;
+                    isFullyGemmed = isFullyGemmed || resolvedIsFullyGemmed;
+                }
+                const isPriorityRole = this.isPriorityRole(rosterMember);
+                const isAlter = rosterMember?.rank?.isAlt ?? false;
+                const userRegistrationWeeks =
+                    await this.userRegistrationWeeksPort.getUserRegistrationWeeks(
+                        participant.character.userId
+                    );
+                if (!userRegistrationWeeks && userRegistrationWeeks !== 0) {
+                    throw new Error(
+                        `Failed to fetch registration weeks for user ${participant.character.userId}`
+                    );
+                }
+                const { rrs, multipliers, reliabilityAdjustment } =
+                    this.rrsCalculator.calculateReadinessScore({
+                        characterName,
+                        realmSlug,
+                        weeksSinceAccountCreation:
+                            userRegistrationWeeks.weeksSinceRegistration,
+                        raidReliabilityRating:
+                            reliability.finalRecentReliability,
+                        isFullEnchanted,
+                        isPriorityRole,
+                        isAlter,
+                        signedUpAt: participant.participationCreatedAt,
+                        raidDateTime,
+                        isFullyGemmed,
+                    });
+
+                return {
+                    characterName,
+                    realmSlug,
+                    isPriorityRole,
+                    isAlter,
+                    isFullEnchanted,
+                    coverageScore: reliability.coverageScore,
+                    weightedWeeklyScore: reliability.weightedWeeklyScore,
+                    finalRecentReliability: reliability.finalRecentReliability,
+                    opportunitiesConsidered:
+                        reliability.opportunitiesConsidered,
+                    weeksConsidered: reliability.weeksConsidered,
+                    weeksSinceAccountCreation:
+                        userRegistrationWeeks.weeksSinceRegistration,
+                    rrs,
+                    multipliers,
+                    reliabilityAdjustment,
+                };
+            })
+        );
 
         return {
             resetId,

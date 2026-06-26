@@ -18,8 +18,8 @@ export class GetGuildRosterUseCase {
         private readonly wowCharacterService: IWowCharacterService,
         private readonly tokenRepository: ITokenRepository,
         private readonly realms: { slug: string }[],
-        private readonly guildNames: string[],
-    ) { }
+        private readonly guildNames: string[]
+    ) {}
 
     async execute(): Promise<WoWCharacter[]> {
         const token = await this.tokenRepository.getCurrentToken();
@@ -29,101 +29,131 @@ export class GetGuildRosterUseCase {
                 this.realms.flatMap(({ slug: realmSlug }) =>
                     this.guildNames.map(async (guildSlug) => {
                         try {
-
-                            const roster = await this.wowGuildService.getGuildRoster(
-                                realmSlug,
-                                guildSlug,
-                                accessToken
-                            );
+                            const roster =
+                                await this.wowGuildService.getGuildRoster(
+                                    realmSlug,
+                                    guildSlug,
+                                    accessToken
+                                );
                             return roster.members.map((m) => ({
                                 realmSlug: m.realm.slug,
-                                name: m.name
-                            }))
+                                name: m.name,
+                            }));
                         } catch (error) {
                             this.logger.error(
                                 `Failed to fetch roster for guild ${guildSlug} on realm ${realmSlug}`,
                                 error
-                            )
-                            return []
+                            );
+                            return [];
                         }
                     })
                 )
             )
-        ).flat()
+        ).flat();
 
-        const freshnessWindowMs = 2 * 24 * 60 * 60 * 1000
-        const now = Date.now()
+        const freshnessWindowMs = 2 * 24 * 60 * 60 * 1000;
+        const now = Date.now();
 
-        const namesByRealm = this.realms.reduce((acc, { slug: realmSlug }) => {
-            acc[realmSlug] = [...new Set(guildMembers.filter(m => m.realmSlug === realmSlug).map(m => m.name))]
-            return acc
-        }, {} as Record<string, string[]>)
+        const namesByRealm = this.realms.reduce(
+            (acc, { slug: realmSlug }) => {
+                acc[realmSlug] = [
+                    ...new Set(
+                        guildMembers
+                            .filter((m) => m.realmSlug === realmSlug)
+                            .map((m) => m.name)
+                    ),
+                ];
+                return acc;
+            },
+            {} as Record<string, string[]>
+        );
 
-        const storedByKey = new Map<string, Member>()
+        const storedByKey = new Map<string, Member>();
         await Promise.all(
             this.realms.map(async ({ slug: realmSlug }) => {
-                const characterNames = namesByRealm[realmSlug] ?? []
-                if (characterNames.length === 0) return
+                const characterNames = namesByRealm[realmSlug] ?? [];
+                if (characterNames.length === 0) return;
 
                 try {
-                    const storedMembers = await this.characterRepository.findAllByRealmSlugAndNames(
-                        realmSlug,
-                        characterNames
-                    )
+                    const storedMembers =
+                        await this.characterRepository.findAllByRealmSlugAndNames(
+                            realmSlug,
+                            characterNames
+                        );
 
                     for (const member of storedMembers) {
-                        const key = this.key(realmSlug, member.character.name)
-                        storedByKey.set(key, member)
+                        const key = this.key(realmSlug, member.character.name);
+                        storedByKey.set(key, member);
                     }
                 } catch (error) {
-                    this.logger.warn(`Failed to read members from repository on realm ${realmSlug}`)
+                    this.logger.warn(
+                        `Failed to read members from repository on realm ${realmSlug}`
+                    );
                 }
             })
-        )
+        );
 
-        const result: WoWCharacter[] = []
-        const toFetch: Array<{ realmSlug: string; name: string }> = []
+        const result: WoWCharacter[] = [];
+        const toFetch: Array<{ realmSlug: string; name: string }> = [];
 
         for (const gm of guildMembers) {
-            const key = this.key(gm.realmSlug, gm.name)
-            const stored = storedByKey.get(key)
+            const key = this.key(gm.realmSlug, gm.name);
+            const stored = storedByKey.get(key);
 
             if (!stored) {
-                toFetch.push(gm)
-                continue
+                toFetch.push(gm);
+                continue;
             }
 
-            const lastUpdated = stored.updated_at ?? stored.created_at
-            const isFresh = lastUpdated && now - lastUpdated.getTime() <= freshnessWindowMs
+            const lastUpdated = stored.updated_at ?? stored.created_at;
+            const isFresh =
+                lastUpdated && now - lastUpdated.getTime() <= freshnessWindowMs;
 
             if (isFresh) {
-                result.push(this.memberToWoWCharacter(stored))
+                result.push(this.memberToWoWCharacter(stored));
             } else {
-                if (stored.character.level >= 10) toFetch.push(gm)
-                else result.push(this.memberToWoWCharacter(stored))
+                if (stored.character.level >= 10) toFetch.push(gm);
+                else result.push(this.memberToWoWCharacter(stored));
             }
         }
 
-        const fetched = await this.fetchCharactersWithAvatars(toFetch, accessToken);
+        const fetched = await this.fetchCharactersWithAvatars(
+            toFetch,
+            accessToken
+        );
 
         await this.updateFetchedMembers(fetched);
 
-        return [...result, ...fetched]
+        return [...result, ...fetched];
     }
 
     private key(realmSlug: string, name: string) {
-        return `${realmSlug.trim().toLowerCase()}:${name.trim().toLowerCase()}`
+        return `${realmSlug.trim().toLowerCase()}:${name.trim().toLowerCase()}`;
     }
 
     private async updateFetchedMembers(fetched: WoWCharacter[]): Promise<void> {
         try {
-            this.logger.info(`Upserting ${fetched.length} fetched guild roster members into repository`)
+            this.logger.info(
+                `Upserting ${fetched.length} fetched guild roster members into repository`
+            );
 
-            await this.characterRepository.upsertMany(fetched.map(c => {
-                return Member.fromWoWCharacter(c, undefined, 0, null, new Date(), new Date())
-            }));
+            await this.characterRepository.upsertMany(
+                fetched.map((c) => {
+                    return Member.fromWoWCharacter(
+                        c,
+                        undefined,
+                        0,
+                        null,
+                        new Date(),
+                        new Date()
+                    );
+                })
+            );
         } catch (error) {
-            this.logger.error('Failed to upsert fetched guild roster members', error)
+            this.logger.error(
+                "Failed to upsert fetched guild roster members",
+                error
+            );
         }
     }
 
@@ -137,25 +167,25 @@ export class GetGuildRosterUseCase {
                     try {
                         return await this.wowCharacterService.getCharacterWithAvatar(
                             m.realmSlug,
-                            (m.name.toLowerCase()),
-                            accessToken,
-                        )
+                            m.name.toLowerCase(),
+                            accessToken
+                        );
                     } catch (error) {
                         this.logger.error(
                             `Failed to fetch character ${m.name} from Blizzard on realm ${m.realmSlug}`,
                             error
-                        )
-                        return null
+                        );
+                        return null;
                     }
                 })
             )
-        )
+        );
 
-        return results.filter((x): x is WoWCharacter => x !== null)
+        return results.filter((x): x is WoWCharacter => x !== null);
     }
 
     private memberToWoWCharacter(member: Member): WoWCharacter {
-        const char = member.character
+        const char = member.character;
         const wowCharacter = new WoWCharacter(
             char.id,
             member.wowAccountId,
@@ -168,9 +198,9 @@ export class GetGuildRosterUseCase {
             "",
             char.guild ?? undefined,
             char.avatar
-        )
+        );
 
-        if (char.selectedRole) wowCharacter.selectedRole = char.selectedRole
-        return wowCharacter
+        if (char.selectedRole) wowCharacter.selectedRole = char.selectedRole;
+        return wowCharacter;
     }
 }

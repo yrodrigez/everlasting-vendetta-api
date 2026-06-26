@@ -222,7 +222,6 @@ describe("CalculateResetRaidReadinessScoreUseCase", () => {
                 getHighestGS: jest.fn(async () => ({
                     details: { isFullEnchanted: true, isFullyGemmed: true },
                 })),
-                
             } as any,
             {
                 resolve: jest.fn(async () => ({

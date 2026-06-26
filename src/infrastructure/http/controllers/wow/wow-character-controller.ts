@@ -10,11 +10,11 @@ import {
 
 export class WowCharacterController {
     constructor(
-        private readonly getWowCharacterUseCase: GetWowCharacterUseCase,
+        private readonly getWowCharacterUseCase: GetWowCharacterUseCase
     ) {}
 
     async handle(
-        ctx: RouteContext<unknown, WowCharacterQuery, WowCharacterParams>,
+        ctx: RouteContext<unknown, WowCharacterQuery, WowCharacterParams>
     ): Promise<GetWowCharacterOutput> {
         const { params, query } = ctx;
         const forceRefresh = this.normalizeForceFlag(query.force);
@@ -29,6 +29,8 @@ export class WowCharacterController {
     private normalizeForceFlag(value?: string | null): boolean {
         if (!value) return false;
         const normalized = value.trim().toLowerCase();
-        return normalized === "true" || normalized === "1" || normalized === "yes";
+        return (
+            normalized === "true" || normalized === "1" || normalized === "yes"
+        );
     }
 }

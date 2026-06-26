@@ -1,34 +1,34 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "lib": ["ES2022"],
-    "moduleResolution": "NodeNext",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@entities/*": ["./src/domain/entities/*"],
-      "@errors/*": ["./src/domain/errors/*"],
-      "@use-cases/*": ["./src/application/use-cases/*"],
-      "@repositories/*": ["./src/domain/repositories/*"],
-      "@external/*": ["./src/infrastructure/external/*"],
-      "@database/*": ["./src/infrastructure/database/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@http/*": ["./src/infrastructure/http/*"],
-      "@validators/*": ["./src/infrastructure/http/validators/*"],
-      "@dto/*": ["./src/application/dto/*"],
-      "@infrastructure/*": ["./src/infrastructure/*"],
-      "@domain/*": ["./src/domain/*"]
-    }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/tests/**/*"]
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "NodeNext",
+        "lib": ["ES2022"],
+        "moduleResolution": "NodeNext",
+        "esModuleInterop": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "declaration": true,
+        "sourceMap": true,
+        "baseUrl": ".",
+        "paths": {
+            "@entities/*": ["./src/domain/entities/*"],
+            "@errors/*": ["./src/domain/errors/*"],
+            "@use-cases/*": ["./src/application/use-cases/*"],
+            "@repositories/*": ["./src/domain/repositories/*"],
+            "@external/*": ["./src/infrastructure/external/*"],
+            "@database/*": ["./src/infrastructure/database/*"],
+            "@utils/*": ["./src/utils/*"],
+            "@http/*": ["./src/infrastructure/http/*"],
+            "@validators/*": ["./src/infrastructure/http/validators/*"],
+            "@dto/*": ["./src/application/dto/*"],
+            "@infrastructure/*": ["./src/infrastructure/*"],
+            "@domain/*": ["./src/domain/*"]
+        }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "src/tests/**/*"]
 }

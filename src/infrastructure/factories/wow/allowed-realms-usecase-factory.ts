@@ -9,4 +9,4 @@ export class GetAllowedRealmsUseCaseFactory {
 
         return new GetAllowedRealms(repository);
     }
-} 
+}

@@ -1,16 +1,16 @@
 import "dotenv/config";
-const region = process.env.BLIZZARD_REGION || 'eu';
-const locale = process.env.BLIZZARD_LOCALE || 'en_US';
+const region = process.env.BLIZZARD_REGION || "eu";
+const locale = process.env.BLIZZARD_LOCALE || "en_US";
 
 const classicEraNamespaces = [
-    { type: 'profile', namespace: `profile-classic1x-${region}` },
-    { type: 'static', namespace: `static-classic1x-${region}` },
-    { type: 'dynamic', namespace: `dynamic-classic1x-${region}` },
+    { type: "profile", namespace: `profile-classic1x-${region}` },
+    { type: "static", namespace: `static-classic1x-${region}` },
+    { type: "dynamic", namespace: `dynamic-classic1x-${region}` },
 ];
 const classicAnniversaryNamespaces = [
-    { type: 'profile', namespace: `profile-classicann-${region}` },
-    { type: 'static', namespace: `static-classicann-${region}` },
-    { type: 'dynamic', namespace: `dynamic-classicann-${region}` },
+    { type: "profile", namespace: `profile-classicann-${region}` },
+    { type: "static", namespace: `static-classicann-${region}` },
+    { type: "dynamic", namespace: `dynamic-classicann-${region}` },
 ];
 
 /* const classicProgressionNamespaces = [
@@ -27,39 +27,49 @@ const retailNamespaces = [
 */
 const currentRealms = [
     {
-        slug: 'living-flame', namespaces: classicEraNamespaces
+        slug: "living-flame",
+        namespaces: classicEraNamespaces,
     },
     {
-        slug: 'spineshatter', namespaces: classicAnniversaryNamespaces
-    }
+        slug: "spineshatter",
+        namespaces: classicAnniversaryNamespaces,
+    },
 ];
 
-export function findNamespace(realmSlug: string, type: 'profile' | 'static' | 'dynamic'): string | null {
-    const realm = currentRealms.find(r => r.slug === realmSlug.toLowerCase());
+export function findNamespace(
+    realmSlug: string,
+    type: "profile" | "static" | "dynamic"
+): string | null {
+    const realm = currentRealms.find((r) => r.slug === realmSlug.toLowerCase());
     if (!realm) return null;
-    const namespaceObj = realm.namespaces.find(n => n.type === type);
+    const namespaceObj = realm.namespaces.find((n) => n.type === type);
     return namespaceObj ? namespaceObj.namespace : null;
 }
 
-const getAllNamespacesByType = (type: 'profile' | 'static' | 'dynamic') => {
-    return [...new Set(currentRealms.map(realm => {
-        const namespaceObj = realm.namespaces.find(n => n.type === type);
-        return namespaceObj ? namespaceObj.namespace : null;
-    }).filter((ns): ns is string => ns !== null))];
-}
+const getAllNamespacesByType = (type: "profile" | "static" | "dynamic") => {
+    return [
+        ...new Set(
+            currentRealms
+                .map((realm) => {
+                    const namespaceObj = realm.namespaces.find(
+                        (n) => n.type === type
+                    );
+                    return namespaceObj ? namespaceObj.namespace : null;
+                })
+                .filter((ns): ns is string => ns !== null)
+        ),
+    ];
+};
 
-const currentProfileNamespaces = getAllNamespacesByType('profile');
+const currentProfileNamespaces = getAllNamespacesByType("profile");
 
-const currentStaticNamespaces = getAllNamespacesByType('static');
+const currentStaticNamespaces = getAllNamespacesByType("static");
 
-const currentDynamicNamespaces = getAllNamespacesByType('dynamic');
-
+const currentDynamicNamespaces = getAllNamespacesByType("dynamic");
 
 export type Realms = typeof currentRealms;
 
-
 export const getEnvironment = () => {
-
     return Object.freeze({
         supabaseUrl: process.env.SUPABASE_URL!,
         supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -76,19 +86,19 @@ export const getEnvironment = () => {
         jwtExpiration: 60 * 15, // 15 minutes in seconds
         refreshTokenExpiration: 60 * 60 * 24 * 30, // 30 days in seconds
         jwtKid: process.env.JWT_EV_KID!,
-        isProd: process.env.ENVIRONMENT === 'production',
+        isProd: process.env.ENVIRONMENT === "production",
         currentRealms,
         profileNamespaces: currentProfileNamespaces,
         staticNamespaces: currentStaticNamespaces,
         dynamicNamespaces: currentDynamicNamespaces,
-        guildNames: ['everlasting-vendetta'],
+        guildNames: ["everlasting-vendetta"],
         postgres: Object.freeze({
             host: process.env.POSTGRES_HOST!,
             password: process.env.POSTGRES_PASSWORD!,
-            port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
+            port: parseInt(process.env.POSTGRES_PORT || "5432", 10),
             user: process.env.POSTGRES_USER!,
             database: process.env.POSTGRES_DATABASE!,
-            ssl: process.env.POSTGRES_SSL === 'true',
-        })
+            ssl: process.env.POSTGRES_SSL === "true",
+        }),
     });
 };

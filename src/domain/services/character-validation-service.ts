@@ -7,46 +7,62 @@ import { ICharacterValidationService } from "./i-character-validation-service";
 import { IRealmsRepository } from "@repositories/i-realms-repository";
 
 export class CharacterValidationService implements ICharacterValidationService {
-    private readonly logger = createLogger('CharacterValidationService');
+    private readonly logger = createLogger("CharacterValidationService");
 
     constructor(
         private readonly characterService: IWowCharacterService,
         private readonly memberRepository: IMemberRepository,
-        private readonly realmsRepository: IRealmsRepository,
-    ) { }
+        private readonly realmsRepository: IRealmsRepository
+    ) {}
 
     async validateRealm(realmSlug: string): Promise<boolean> {
         const allowedRealms = await this.realmsRepository.getAllowedRealms();
-        const isValid = allowedRealms.some(realm => realm.slug === realmSlug);
+        const isValid = allowedRealms.some((realm) => realm.slug === realmSlug);
         this.logger.info(`Realm validation for '${realmSlug}': ${isValid}`);
         return isValid;
     }
 
-    async validateCharacterExists(realmSlug: string, characterName: string, accessToken: string): Promise<WoWCharacter> {
+    async validateCharacterExists(
+        realmSlug: string,
+        characterName: string,
+        accessToken: string
+    ): Promise<WoWCharacter> {
         try {
-            const character = await this.characterService.getCharacterWithAvatar(
-                realmSlug,
-                characterName,
-                accessToken,
+            const character =
+                await this.characterService.getCharacterWithAvatar(
+                    realmSlug,
+                    characterName,
+                    accessToken
+                );
+            this.logger.info(
+                `Character ${characterName} on realm ${realmSlug} validated successfully`
             );
-            this.logger.info(`Character ${characterName} on realm ${realmSlug} validated successfully`);
             return character;
         } catch (error) {
-            this.logger.error(`Error validating character ${characterName} on realm ${realmSlug}`, error);
+            this.logger.error(
+                `Error validating character ${characterName} on realm ${realmSlug}`,
+                error
+            );
             if (error instanceof BlizzardApiError) {
                 throw error;
             }
-            throw new BlizzardApiError(`Failed to validate character: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new BlizzardApiError(
+                `Failed to validate character: ${error instanceof Error ? error.message : "Unknown error"}`
+            );
         }
     }
 
-    async isCharacterAvailable(characterId: number, currentUserId: string): Promise<{
+    async isCharacterAvailable(
+        characterId: number,
+        currentUserId: string
+    ): Promise<{
         available: boolean;
         takenBy?: string;
         alreadyLinkedByUser: boolean;
     }> {
         try {
-            const existingMember = await this.memberRepository.findById(characterId);
+            const existingMember =
+                await this.memberRepository.findById(characterId);
 
             // Character not in system yet
             if (!existingMember) {
@@ -80,7 +96,10 @@ export class CharacterValidationService implements ICharacterValidationService {
                 alreadyLinkedByUser: false,
             };
         } catch (error) {
-            this.logger.error(`Error checking character availability for ID ${characterId}`, error);
+            this.logger.error(
+                `Error checking character availability for ID ${characterId}`,
+                error
+            );
             throw error;
         }
     }

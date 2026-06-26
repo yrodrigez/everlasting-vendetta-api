@@ -5,7 +5,10 @@ import { createLogger } from "@infrastructure/logging";
 import { IRealmsRepository } from "@repositories/i-realms-repository";
 
 export class RealmsRepository implements IRealmsRepository {
-    constructor(private readonly database: DatabaseClient, private readonly logger = createLogger("RealmsRepository")) { }
+    constructor(
+        private readonly database: DatabaseClient,
+        private readonly logger = createLogger("RealmsRepository")
+    ) {}
     async getAllowedRealms(): Promise<Realm[]> {
         this.logger.info("Fetching allowed realms from database");
         const { data, error } = await this.database
@@ -14,7 +17,10 @@ export class RealmsRepository implements IRealmsRepository {
             .order("created_at", { ascending: false });
 
         if (error) {
-            throw new ServiceError({ message: error.message, serviceName: "RealmsRepository" });
+            throw new ServiceError({
+                message: error.message,
+                serviceName: "RealmsRepository",
+            });
         }
 
         return data || [];

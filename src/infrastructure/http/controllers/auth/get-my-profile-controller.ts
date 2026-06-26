@@ -1,10 +1,7 @@
 import { GetMyProfileUseCase } from "@use-cases/get-my-profile-usecase";
 
 export class GetMyProfileController {
-
-    constructor(
-        private readonly getMyProfileUseCase: GetMyProfileUseCase,
-    ) { }
+    constructor(private readonly getMyProfileUseCase: GetMyProfileUseCase) {}
     async handle(request: { userId: string }): Promise<any> {
         const userId = request.userId;
 

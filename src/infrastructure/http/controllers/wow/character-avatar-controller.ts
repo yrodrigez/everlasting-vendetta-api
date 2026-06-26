@@ -10,11 +10,11 @@ import {
 
 export class CharacterAvatarController {
     constructor(
-        private readonly characterAvatarUseCase: GetCharacterAvatarUseCase,
-    ) { }
+        private readonly characterAvatarUseCase: GetCharacterAvatarUseCase
+    ) {}
 
     async handle(
-        ctx: RouteContext<unknown, CharacterAvatarQuery, CharacterAvatarParams>,
+        ctx: RouteContext<unknown, CharacterAvatarQuery, CharacterAvatarParams>
     ): Promise<GetCharacterAvatarOutput> {
         const { params, query } = ctx;
         const forceRefresh = this.normalizeForceFlag(query.force);
@@ -29,6 +29,8 @@ export class CharacterAvatarController {
     private normalizeForceFlag(value?: string | null): boolean {
         if (!value) return false;
         const normalized = value.trim().toLowerCase();
-        return normalized === "true" || normalized === "1" || normalized === "yes";
+        return (
+            normalized === "true" || normalized === "1" || normalized === "yes"
+        );
     }
 }

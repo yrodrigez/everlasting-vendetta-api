@@ -26,14 +26,15 @@ rosterRouter.get(
             const blizzardOauthService = new BlizzardOauthService();
             const tokenRepository = new BlizzardTokenRepository(
                 databaseClient,
-                blizzardOauthService,
+                blizzardOauthService
             );
-
 
             const wowGuildService = new WowGuildService();
             const wowCharacterService = new WowCharacterService();
             const environment = getEnvironment();
-            const realms = environment.currentRealms.map(r => ({ slug: r.slug }));
+            const realms = environment.currentRealms.map((r) => ({
+                slug: r.slug,
+            }));
             const guildNames = environment.guildNames;
 
             const useCase = new GetGuildRosterUseCase(
@@ -47,17 +48,14 @@ rosterRouter.get(
 
             logger.info("Fetching guild roster for authenticated request");
             const data = await useCase.execute();
-            logger.info(
-                `Fetched guild roster with ${data.length} characters`,
-            );
+            logger.info(`Fetched guild roster with ${data.length} characters`);
 
             return {
                 roster: data,
                 count: data.length,
             };
-        },
-    ),
+        }
+    )
 );
 
 export default rosterRouter;
-

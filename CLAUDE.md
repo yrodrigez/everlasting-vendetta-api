@@ -33,6 +33,7 @@ The app runs on both **Cloudflare Workers** (`src/index.ts` — worker fetch han
 ### HTTP Layer Pattern (Route -> Controller -> UseCase)
 
 Routes are defined in `infrastructure/http/routes/`. Each route file:
+
 1. Creates a Hono sub-router
 2. Uses `createRoute()` from `hono-adapter.ts` which handles Zod validation, logging, error mapping, and request context
 3. Instantiates the controller via a **Factory** (`infrastructure/factories/`) which wires up all dependencies

@@ -3,8 +3,10 @@ export type UserRegistrationWeeksResult = {
     registeredAt: Date | null;
     weeksSinceRegistration: number;
     characterName: string | null;
-}
+};
 
 export interface UserRegistrationWeeksPort {
-    getUserRegistrationWeeks(userId: string): Promise<UserRegistrationWeeksResult>;
+    getUserRegistrationWeeks(
+        userId: string
+    ): Promise<UserRegistrationWeeksResult>;
 }

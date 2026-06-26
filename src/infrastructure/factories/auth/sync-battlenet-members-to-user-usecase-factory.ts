@@ -10,11 +10,12 @@ import { SyncBattlenetMembersToUserUsecase } from "@use-cases/sync-battlenet-mem
 
 export class SyncBattlenetMembersToUserUsecaseFactory {
     static make() {
-
         const databaseClient = DatabaseClientFactory.getInstance();
         const blizzardOAuthService = new BlizzardOauthService();
         const environment = getEnvironment();
-        const wowAccountService = new WowAccountService(environment.profileNamespaces);
+        const wowAccountService = new WowAccountService(
+            environment.profileNamespaces
+        );
         const characterService = new WowCharacterService();
         const memberRepository = new MemberRepository(databaseClient);
         const wowAccountRepository = new WowAccountRepository(databaseClient);

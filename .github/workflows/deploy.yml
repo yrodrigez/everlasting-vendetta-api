@@ -1,19 +1,19 @@
 name: Deploy to Cloudflare Workers
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    name: Deploy
-    steps:
-      - name: Deploy
-        run: |
-          curl --request GET \
-            --url "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
-            --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            --fail --silent --show-error
+    deploy:
+        runs-on: ubuntu-latest
+        name: Deploy
+        steps:
+            - name: Deploy
+              run: |
+                  curl --request GET \
+                    --url "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+                    --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+                    --fail --silent --show-error

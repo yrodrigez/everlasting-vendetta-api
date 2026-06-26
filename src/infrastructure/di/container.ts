@@ -1,30 +1,30 @@
-type Factory<T> = (container: Container) => T
+type Factory<T> = (container: Container) => T;
 
 export class Container {
-    private factories = new Map<string, Factory<unknown>>()
-    private singletons = new Map<string, unknown>()
+    private factories = new Map<string, Factory<unknown>>();
+    private singletons = new Map<string, unknown>();
 
     register<T>(key: string, factory: Factory<T>) {
-        this.factories.set(key, factory)
+        this.factories.set(key, factory);
     }
 
     resolve<T>(key: string): T {
-        const factory = this.factories.get(key)
+        const factory = this.factories.get(key);
 
         if (!factory) {
-            throw new Error(`Dependency not registered: ${key}`)
+            throw new Error(`Dependency not registered: ${key}`);
         }
 
-        return factory(this) as T
+        return factory(this) as T;
     }
 
     singleton<T>(key: string, factory: Factory<T>) {
-        this.factories.set(key, container => {
+        this.factories.set(key, (container) => {
             if (!this.singletons.has(key)) {
-                this.singletons.set(key, factory(container))
+                this.singletons.set(key, factory(container));
             }
 
-            return this.singletons.get(key) as T
-        })
+            return this.singletons.get(key) as T;
+        });
     }
 }

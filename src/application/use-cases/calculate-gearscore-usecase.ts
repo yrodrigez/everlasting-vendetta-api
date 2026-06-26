@@ -18,7 +18,7 @@ export class CalculateGearScoreUseCase {
         private readonly tokenRepository: ITokenRepository,
         private readonly equipmentService: ICharacterEquipmentService,
         private readonly gearScoreResolver: GearScoreResolver
-    ) { }
+    ) {}
 
     async execute(request: CalculateGearScoreRequest): Promise<GearScore[]> {
         // Get Blizzard token
@@ -26,7 +26,9 @@ export class CalculateGearScoreUseCase {
         const token = await this.tokenRepository.getCurrentToken();
         this.logger.info("Blizzard token fetched successfully.");
 
-        this.logger.info(`Fetching equipment for ${request.characters.length} characters...`);
+        this.logger.info(
+            `Fetching equipment for ${request.characters.length} characters...`
+        );
         const equipments = await Promise.all(
             request.characters.map(({ name, realm }) =>
                 this.limit(async () => {
@@ -36,7 +38,7 @@ export class CalculateGearScoreUseCase {
                             realm.toLowerCase(),
                             token.access_token
                         );
-                        
+
                         return { realmSlug: realm, equipment: data };
                     } catch (error) {
                         this.logger.error(
@@ -52,17 +54,20 @@ export class CalculateGearScoreUseCase {
         // Calculate gear score for each character
         this.logger.info("Calculating gear score for each character...");
         const gearScores = await Promise.all(
-            equipments.filter(x => x !== null).map(({ equipment, realmSlug }) =>
-
-                this.gearScoreResolver.resolve({
-                    characterName: equipment.characterName,
-                    realmSlug,
-                    equippedItems: equipment.equippedItems,
-                    forceRefresh: request.forceRefresh || false,
-                })
-            )
+            equipments
+                .filter((x) => x !== null)
+                .map(({ equipment, realmSlug }) =>
+                    this.gearScoreResolver.resolve({
+                        characterName: equipment.characterName,
+                        realmSlug,
+                        equippedItems: equipment.equippedItems,
+                        forceRefresh: request.forceRefresh || false,
+                    })
+                )
         );
-        this.logger.info("Gear score calculation completed for all characters.");
+        this.logger.info(
+            "Gear score calculation completed for all characters."
+        );
         return gearScores;
     }
 }

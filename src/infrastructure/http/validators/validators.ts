@@ -1,12 +1,18 @@
 import { ZodTypeAny } from "zod/v3";
-import { BaseValidator, ValidationContext, ValidationResult } from "./validator-chain";
+import {
+    BaseValidator,
+    ValidationContext,
+    ValidationResult,
+} from "./validator-chain";
 
 export class BodyValidator extends BaseValidator {
     constructor(private schema?: ZodTypeAny) {
         super();
     }
 
-    protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
+    protected async doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult> {
         const { c, logger } = context;
 
         // Skip body validation for GET/DELETE
@@ -44,8 +50,9 @@ export class BodyValidator extends BaseValidator {
         const parsed = this.schema.safeParse(body);
 
         if (!parsed.success) {
-            logger.error("Body validation failed",
-                parsed.error.issues.map(issue => issue.message).join("; "),
+            logger.error(
+                "Body validation failed",
+                parsed.error.issues.map((issue) => issue.message).join("; ")
             );
             return {
                 success: false,
@@ -66,7 +73,9 @@ export class QueryValidator extends BaseValidator {
         super();
     }
 
-    protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
+    protected async doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult> {
         const { c, logger } = context;
 
         if (!this.schema) {
@@ -78,7 +87,9 @@ export class QueryValidator extends BaseValidator {
 
         if (!queryParsed.success) {
             logger.error("Query validation failed", {
-                errors: queryParsed.error.issues.map(issue => issue.message).join("; "),
+                errors: queryParsed.error.issues
+                    .map((issue) => issue.message)
+                    .join("; "),
             });
             return {
                 success: false,
@@ -99,7 +110,9 @@ export class ParamsValidator extends BaseValidator {
         super();
     }
 
-    protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
+    protected async doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult> {
         const { c, logger } = context;
 
         if (!this.schema) {
@@ -111,7 +124,9 @@ export class ParamsValidator extends BaseValidator {
 
         if (!paramsParsed.success) {
             logger.error("Params validation failed", {
-                errors: paramsParsed.error.issues.map(issue => issue.message).join("; "),
+                errors: paramsParsed.error.issues
+                    .map((issue) => issue.message)
+                    .join("; "),
             });
             return {
                 success: false,
@@ -132,7 +147,9 @@ export class HeadersValidator extends BaseValidator {
         super();
     }
 
-    protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
+    protected async doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult> {
         const { c, logger } = context;
 
         if (!this.schema) {
@@ -141,14 +158,19 @@ export class HeadersValidator extends BaseValidator {
         }
 
         const allHeaders = Object.fromEntries(
-            [...c.req.raw.headers.entries()].map(([k, v]) => [k.toLowerCase(), v])
+            [...c.req.raw.headers.entries()].map(([k, v]) => [
+                k.toLowerCase(),
+                v,
+            ])
         );
 
         const headersParsed = this.schema.safeParse(allHeaders);
 
         if (!headersParsed.success) {
             logger.error("Headers validation failed", {
-                errors: headersParsed.error.issues.map(issue => issue.message).join("; "),
+                errors: headersParsed.error.issues
+                    .map((issue) => issue.message)
+                    .join("; "),
             });
             return {
                 success: false,
@@ -164,13 +186,14 @@ export class HeadersValidator extends BaseValidator {
     }
 }
 
-
 export class CookiesValidator extends BaseValidator {
     constructor(private schema?: ZodTypeAny) {
         super();
     }
 
-    protected async doValidate(context: ValidationContext): Promise<ValidationResult> {
+    protected async doValidate(
+        context: ValidationContext
+    ): Promise<ValidationResult> {
         const { c, logger } = context;
 
         if (!this.schema) {
@@ -178,15 +201,20 @@ export class CookiesValidator extends BaseValidator {
             return { success: true };
         }
 
-        const allCookies = c.req.raw.headers.get('cookie')
-            ?.split(';')
-            .reduce((acc, cookie) => {
-                const [key, value] = cookie.trim().split('=');
-                if (key && value) {
-                    acc[key] = decodeURIComponent(value);
-                }
-                return acc;
-            }, {} as Record<string, string>) || {};
+        const allCookies =
+            c.req.raw.headers
+                .get("cookie")
+                ?.split(";")
+                .reduce(
+                    (acc, cookie) => {
+                        const [key, value] = cookie.trim().split("=");
+                        if (key && value) {
+                            acc[key] = decodeURIComponent(value);
+                        }
+                        return acc;
+                    },
+                    {} as Record<string, string>
+                ) || {};
 
         console.log("All Cookies:", allCookies);
 
@@ -194,7 +222,9 @@ export class CookiesValidator extends BaseValidator {
 
         if (!cookiesParsed.success) {
             logger.error("Cookies validation failed", {
-                errors: cookiesParsed.error.issues.map(issue => issue.message).join("; "),
+                errors: cookiesParsed.error.issues
+                    .map((issue) => issue.message)
+                    .join("; "),
             });
             return {
                 success: false,

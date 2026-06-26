@@ -12,16 +12,16 @@ serve({
     port,
 });
 
-const db = SQLDatabaseClientFactory.getInstance()
+const db = SQLDatabaseClientFactory.getInstance();
 
 process.on("SIGTERM", async () => {
-  await db.close()
-  process.exit(0)
-})
+    await db.close();
+    process.exit(0);
+});
 
 process.on("SIGINT", async () => {
-  await db.close()
-  process.exit(0)
-})
+    await db.close();
+    process.exit(0);
+});
 
 console.log(`✅ Server running at http://localhost:${port}`);

@@ -5,10 +5,13 @@ import { UserRepositoryError } from "@errors/user-repository-error";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 import { WowCharacterService } from "@external/wow-character-service";
 import { createRoute } from "@http/hono-adapter";
-import { authenticatedUserMiddleware, authMiddleware } from "@http/middleware/auth.middleware";
+import {
+    authenticatedUserMiddleware,
+    authMiddleware,
+} from "@http/middleware/auth.middleware";
 import {
     UserCharactersQuery,
-    userCharactersQuerySchema
+    userCharactersQuerySchema,
 } from "@http/validators/schemas/wow-routes-schemas";
 import { GetUserCharacters } from "@use-cases/get-user-characters";
 import { Hono } from "hono";
@@ -20,7 +23,7 @@ const characterRoutes = new Hono();
 const logger = createLogger("CharacterRoutes");
 
 characterRoutes.get(
-    '/',
+    "/",
     authMiddleware,
     authenticatedUserMiddleware,
     createRoute<unknown, unknown, UserCharactersQuery>(
@@ -30,9 +33,8 @@ characterRoutes.get(
         },
         async ({ query, user }) => {
             try {
+                const realmSlug = query.realmSlug || "living-flame";
 
-                const realmSlug = query.realmSlug || 'living-flame';
-                
                 // Initialize database client
                 const databaseClient = DatabaseClientFactory.getInstance();
 
@@ -46,11 +48,12 @@ characterRoutes.get(
                 // Get generic Blizzard token for API calls
                 let blizzardToken;
                 try {
-                    blizzardToken = await blizzardTokenRepository.getCurrentToken();
+                    blizzardToken =
+                        await blizzardTokenRepository.getCurrentToken();
                 } catch (error) {
-                    logger.error('Failed to get Blizzard token', error);
+                    logger.error("Failed to get Blizzard token", error);
                     throw new TokenNotFoundError(
-                        'Unable to authenticate with Blizzard API. Please try again later.'
+                        "Unable to authenticate with Blizzard API. Please try again later."
                     );
                 }
 
@@ -60,7 +63,6 @@ characterRoutes.get(
                 // Initialize repositories
                 const userRepository = new UserRepository(databaseClient);
 
-
                 // Create and execute use case
                 const getUserCharacters = new GetUserCharacters(
                     userRepository,
@@ -68,7 +70,7 @@ characterRoutes.get(
                 );
                 const userId = user?.userId;
                 if (!userId) {
-                    throw new AuthError('Unauthorized: User ID not found');
+                    throw new AuthError("Unauthorized: User ID not found");
                 }
                 const characters = await getUserCharacters.execute({
                     userId: userId,
@@ -78,7 +80,7 @@ characterRoutes.get(
 
                 return { characters };
             } catch (error) {
-                logger.error('Error in user-characters route', error);
+                logger.error("Error in user-characters route", error);
 
                 // Handle specific error types
                 if (error instanceof AuthError) {
@@ -87,7 +89,7 @@ characterRoutes.get(
 
                 if (error instanceof UserRepositoryError) {
                     throw new UserRepositoryError(
-                        'Failed to fetch user characters from database'
+                        "Failed to fetch user characters from database"
                     );
                 }
 
@@ -100,6 +102,8 @@ characterRoutes.get(
                     `Failed to fetch user characters: ${(error as Error).message}`
                 );
             }
-        }));
+        }
+    )
+);
 
 export { characterRoutes };

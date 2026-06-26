@@ -15,7 +15,7 @@ const paramsSchema = z.object({
 type Params = z.infer<typeof paramsSchema>;
 
 getSelectedCharacterByDiscordIdRoute.get(
-    '/',
+    "/",
     authMiddleware,
     createRoute<unknown, unknown, unknown, Params>(
         {
@@ -29,7 +29,7 @@ getSelectedCharacterByDiscordIdRoute.get(
 
             const useCase = new GetSelectedCharacterByDiscordIdUseCase(
                 authRepository,
-                memberRepository,
+                memberRepository
             );
 
             const selectedCharacter = await useCase.execute(params.discordId);

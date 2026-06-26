@@ -9,5 +9,9 @@ export interface WowItemCacheEntry {
 
 export interface IWowItemCacheRepository {
     get(itemId: number): Promise<WowItemCacheEntry | null>;
-    save(itemId: number, details: WowItemDetails, displayId: number | null): Promise<void>;
+    save(
+        itemId: number,
+        details: WowItemDetails,
+        displayId: number | null
+    ): Promise<void>;
 }

@@ -3,16 +3,19 @@ import { IWoWHeadService } from "src/domain/services/i-wow-head-service";
 import { WoWHeadParser } from "./wow-head-parser";
 
 export class WoWHeadService implements IWoWHeadService {
-    constructor() { }
+    constructor() {}
 
-    async fetchItemDetails(itemId: number, env: number = 4): Promise<WowHeadItemOutput> {
+    async fetchItemDetails(
+        itemId: number,
+        env: number = 4
+    ): Promise<WowHeadItemOutput> {
         const url = `https://nether.wowhead.com/tooltip/item/${itemId}?dataEnv=${env}&locale=0`;
         const response = await fetch(url, {
             headers: {
-                'Accept': 'application/json',
-                'Cache-Control': 'max-age=86400', // 24 hour cache
+                Accept: "application/json",
+                "Cache-Control": "max-age=86400", // 24 hour cache
             },
-        })
+        });
 
         if (!response.ok && env === 4) {
             // retry with 5 for TBC items
@@ -20,10 +23,12 @@ export class WoWHeadService implements IWoWHeadService {
         }
 
         if (!response.ok) {
-            throw new Error(`WoWHeadService::fetchItemDetails - Error fetching item details for itemId ${itemId}: ${response.status} ${response.statusText}`);
+            throw new Error(
+                `WoWHeadService::fetchItemDetails - Error fetching item details for itemId ${itemId}: ${response.status} ${response.statusText}`
+            );
         }
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
             name: string;
             quality: number;
             icon: string;
@@ -32,7 +37,9 @@ export class WoWHeadService implements IWoWHeadService {
         };
 
         if (!data) {
-            throw new Error(`WoWHeadService::fetchItemDetails - Invalid data received from WoWHead for itemId ${itemId}`);
+            throw new Error(
+                `WoWHeadService::fetchItemDetails - Invalid data received from WoWHead for itemId ${itemId}`
+            );
         }
 
         const itemLevel = WoWHeadParser.parseItemLevel(data.tooltip);
@@ -52,13 +59,12 @@ export class WoWHeadService implements IWoWHeadService {
             quality: data.quality,
             tooltip: data.tooltip,
             level: itemLevel ?? 0,
-            type: type ?? 'Unknown',
-            spells: (data.spells ?? []).map?.(spell => ({
+            type: type ?? "Unknown",
+            spells: (data.spells ?? []).map?.((spell) => ({
                 spellId: spell.id as number,
                 spellName: spell.name as string,
                 description: spell.description as string,
             })),
         };
     }
-
 }

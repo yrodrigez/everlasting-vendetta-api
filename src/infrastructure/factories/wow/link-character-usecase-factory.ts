@@ -16,12 +16,16 @@ export class LinkCharacterUseCaseFactory {
         const blizzardOauthService = new BlizzardOauthService();
         const tokenRepository = new BlizzardTokenRepository(
             databaseClient,
-            blizzardOauthService,
+            blizzardOauthService
         );
-        
+
         const characterService = new WowCharacterService();
 
-        const characterValidationService = new CharacterValidationService(characterService, memberRepository, realmsRepository);
+        const characterValidationService = new CharacterValidationService(
+            characterService,
+            memberRepository,
+            realmsRepository
+        );
 
         const eventTracker = new EventTrackingService();
 
@@ -29,7 +33,7 @@ export class LinkCharacterUseCaseFactory {
             memberRepository,
             characterValidationService,
             tokenRepository,
-            eventTracker,
+            eventTracker
         );
     }
 }

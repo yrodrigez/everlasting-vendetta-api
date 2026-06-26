@@ -17,7 +17,6 @@ export interface GetWowCharacterOutput {
     updated: boolean;
 }
 
-
 const CACHE_TTL_MS = 1000 * 60 * 15; // 15 minutes
 const cache = new Map<string, { character: WoWCharacter; timestamp: number }>();
 export class GetWowCharacterUseCase {
@@ -26,16 +25,22 @@ export class GetWowCharacterUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly tokenRepository: ITokenRepository,
-        private readonly wowCharacterService: IWowCharacterService,
-    ) { }
+        private readonly wowCharacterService: IWowCharacterService
+    ) {}
 
     async execute(input: GetWowCharacterInput): Promise<GetWowCharacterOutput> {
-        const realmSlug = decodeURIComponent(input.realmSlug).trim().toLowerCase();
+        const realmSlug = decodeURIComponent(input.realmSlug)
+            .trim()
+            .toLowerCase();
         const characterName = decodeURIComponent(input.characterName).trim();
 
         const cacheKey = `${realmSlug}:${characterName}`;
         const cached = cache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS && !input.forceRefresh) {
+        if (
+            cached &&
+            Date.now() - cached.timestamp < CACHE_TTL_MS &&
+            !input.forceRefresh
+        ) {
             this.logger.info("Serving character from cache", {
                 characterId: cached.character.id,
             });
@@ -56,7 +61,7 @@ export class GetWowCharacterUseCase {
         const existingMember =
             await this.memberRepository.findByRealmSlugAndName(
                 realmSlug,
-                characterName,
+                characterName
             );
 
         if (
@@ -76,22 +81,22 @@ export class GetWowCharacterUseCase {
         }
 
         const token = await this.tokenRepository.getCurrentToken();
-        const fetchedCharacter = await this.wowCharacterService.getCharacterWithAvatar(
-            realmSlug,
-            characterName,
-            token.access_token,
-        );
+        const fetchedCharacter =
+            await this.wowCharacterService.getCharacterWithAvatar(
+                realmSlug,
+                characterName,
+                token.access_token
+            );
 
         let updated = false;
 
-
         const updatedMemberCharacter = this.mapWowCharacterToMemberCharacter(
             fetchedCharacter,
-            existingMember?.character.selectedRole,
+            existingMember?.character.selectedRole
         );
         const hasChanges = this.hasCharacterChanged(
-            existingMember?.character ?? {} as MemberCharacter,
-            updatedMemberCharacter,
+            existingMember?.character ?? ({} as MemberCharacter),
+            updatedMemberCharacter
         );
 
         if (input.forceRefresh === true || hasChanges) {
@@ -102,15 +107,17 @@ export class GetWowCharacterUseCase {
                 updatedMemberCharacter,
                 existingMember?.registrationSource ?? "unknown",
                 existingMember?.created_at ?? new Date(),
-                new Date(),
+                new Date()
             );
 
             await this.memberRepository.upsert(updatedMember);
             updated = true;
         }
 
-
-        cache.set(cacheKey, { character: fetchedCharacter, timestamp: Date.now() });
+        cache.set(cacheKey, {
+            character: fetchedCharacter,
+            timestamp: Date.now(),
+        });
 
         return {
             character: fetchedCharacter,
@@ -148,13 +155,13 @@ export class GetWowCharacterUseCase {
             },
             char.faction,
             char.guild,
-            char.avatar,
+            char.avatar
         );
     }
 
     private mapWowCharacterToMemberCharacter(
         character: WoWCharacter,
-        selectedRole?: string,
+        selectedRole?: string
     ): MemberCharacter {
         return {
             id: character.id,
@@ -179,7 +186,7 @@ export class GetWowCharacterUseCase {
 
     private hasCharacterChanged(
         current: MemberCharacter,
-        next: MemberCharacter,
+        next: MemberCharacter
     ): boolean {
         return JSON.stringify(current) !== JSON.stringify(next);
     }

@@ -6,19 +6,22 @@ import { MemberRepositoryError } from "../../domain/errors/member-repository-err
 const MEMBER_TABLE = "ev_member";
 
 export class MemberRepository implements IMemberRepository {
-    constructor(private readonly database: DatabaseClient) { }
-    async isUserGuildMember(userId: string, realmSlugs: string[]): Promise<boolean> {
+    constructor(private readonly database: DatabaseClient) {}
+    async isUserGuildMember(
+        userId: string,
+        realmSlugs: string[]
+    ): Promise<boolean> {
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
             .select("id", { count: "exact", head: true })
             .eq("user_id", userId)
-            .eq("character->guild->>name", 'Everlasting Vendetta')
+            .eq("character->guild->>name", "Everlasting Vendetta")
             .in("character->realm->>slug", realmSlugs)
             .limit(1);
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error checking if user is guild member: ${error.message || "Unknown error"}`,
+                `Error checking if user is guild member: ${error.message || "Unknown error"}`
             );
         }
 
@@ -34,7 +37,7 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error unlinking members from user ID: ${error.message || "Unknown error"}`,
+                `Error unlinking members from user ID: ${error.message || "Unknown error"}`
             );
         }
 
@@ -45,9 +48,12 @@ export class MemberRepository implements IMemberRepository {
         return data.map((row: any) => Member.fromDB(row));
     }
 
-    async findAllByRealmSlugAndNames(realmSlug: string, characterNames: string[]): Promise<Member[]> {
+    async findAllByRealmSlugAndNames(
+        realmSlug: string,
+        characterNames: string[]
+    ): Promise<Member[]> {
         const normalizedRealm = realmSlug.trim().toLowerCase();
-        const normalizedNames = characterNames.map(name => name.trim());
+        const normalizedNames = characterNames.map((name) => name.trim());
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
             .select("*")
@@ -56,7 +62,7 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching members by realm and names: ${error.message || "Unknown error"}`,
+                `Error fetching members by realm and names: ${error.message || "Unknown error"}`
             );
         }
 
@@ -77,8 +83,9 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching member by ID: ${error.message || "Unknown error"
-                }`,
+                `Error fetching member by ID: ${
+                    error.message || "Unknown error"
+                }`
             );
         }
 
@@ -96,8 +103,9 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching all members: ${error.message || "Unknown error"
-                }`,
+                `Error fetching all members: ${
+                    error.message || "Unknown error"
+                }`
             );
         }
         if (!data) {
@@ -109,7 +117,7 @@ export class MemberRepository implements IMemberRepository {
 
     async findByRealmSlugAndName(
         realmSlug: string,
-        characterName: string,
+        characterName: string
     ): Promise<Member | null> {
         const normalizedRealm = realmSlug.trim().toLowerCase();
         const normalizedName = characterName.trim();
@@ -124,7 +132,7 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching member by realm and name: ${error.message || "Unknown error"}`,
+                `Error fetching member by realm and name: ${error.message || "Unknown error"}`
             );
         }
 
@@ -150,19 +158,20 @@ export class MemberRepository implements IMemberRepository {
             .maybeSingle();
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new MemberRepositoryError(
-                    "Member with this user ID or WoW account ID already exists.",
+                    "Member with this user ID or WoW account ID already exists."
                 );
             }
             throw new MemberRepositoryError(
-                `Error saving member: ${error.message || "Unknown error"}`,
+                `Error saving member: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new MemberRepositoryError(
-                "Failed to save member, no data returned from database",
+                "Failed to save member, no data returned from database"
             );
         }
 
@@ -186,19 +195,20 @@ export class MemberRepository implements IMemberRepository {
             .maybeSingle();
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new MemberRepositoryError(
-                    "Member with this user ID or WoW account ID already exists.",
+                    "Member with this user ID or WoW account ID already exists."
                 );
             }
             throw new MemberRepositoryError(
-                `Error updating member: ${error.message || "Unknown error"}`,
+                `Error updating member: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new MemberRepositoryError(
-                "Failed to update member, no data returned from database",
+                "Failed to update member, no data returned from database"
             );
         }
 
@@ -209,10 +219,10 @@ export class MemberRepository implements IMemberRepository {
         const memberData = {
             id: member.id,
             character: member.character,
-            "user_id": member.userId,
-            "wow_account_id": member.wowAccountId,
-            "registration_source": member.registrationSource,
-            "updated_at": new Date().toISOString(),
+            user_id: member.userId,
+            wow_account_id: member.wowAccountId,
+            registration_source: member.registrationSource,
+            updated_at: new Date().toISOString(),
         };
 
         const { data, error } = await this.database
@@ -222,58 +232,77 @@ export class MemberRepository implements IMemberRepository {
             .maybeSingle();
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new MemberRepositoryError(
-                    "Member with this user ID or WoW account ID already exists.",
+                    "Member with this user ID or WoW account ID already exists."
                 );
             }
             throw new MemberRepositoryError(
-                `Error upserting member: ${error.message || "Unknown error"}`,
+                `Error upserting member: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new MemberRepositoryError(
-                "Failed to upsert member, no data returned from database",
+                "Failed to upsert member, no data returned from database"
             );
         }
 
         return Member.fromDB(data);
     }
 
-    async upsertMany(members: Member[], dangerouslyAllowEmptyValues: (keyof Member)[] = []): Promise<Member[]> {
+    async upsertMany(
+        members: Member[],
+        dangerouslyAllowEmptyValues: (keyof Member)[] = []
+    ): Promise<Member[]> {
         if (members.length === 0) {
             return [];
         }
 
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
-            .upsert(members.map((m) => Object.fromEntries(Object.entries(m.toJSON()).filter(([k, v]) => {
-                return dangerouslyAllowEmptyValues.includes(k as keyof Member) || Boolean(v);
-            }))), { onConflict: "id" })
-            .select('*');
+            .upsert(
+                members.map((m) =>
+                    Object.fromEntries(
+                        Object.entries(m.toJSON()).filter(([k, v]) => {
+                            return (
+                                dangerouslyAllowEmptyValues.includes(
+                                    k as keyof Member
+                                ) || Boolean(v)
+                            );
+                        })
+                    )
+                ),
+                { onConflict: "id" }
+            )
+            .select("*");
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new MemberRepositoryError(
-                    "Member with this user ID or WoW account ID already exists.",
+                    "Member with this user ID or WoW account ID already exists."
                 );
             }
             throw new MemberRepositoryError(
-                `Error upserting members: ${error.message || "Unknown error"}`,
+                `Error upserting members: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new MemberRepositoryError(
-                "Failed to upsert members, no data returned from database",
+                "Failed to upsert members, no data returned from database"
             );
         }
 
         return data.map((item: any) => Member.fromDB(item));
     }
 
-    async findByUserIdAndCharacterId(userId: string, characterId: number): Promise<Member | null> {
+    async findByUserIdAndCharacterId(
+        userId: string,
+        characterId: number
+    ): Promise<Member | null> {
         const { data, error } = await this.database
             .from(MEMBER_TABLE)
             .select("*")
@@ -284,7 +313,7 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching member by user ID and character ID: ${error.message || "Unknown error"}`,
+                `Error fetching member by user ID and character ID: ${error.message || "Unknown error"}`
             );
         }
 
@@ -306,7 +335,7 @@ export class MemberRepository implements IMemberRepository {
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching selected member by user ID: ${error.message || "Unknown error"}`,
+                `Error fetching selected member by user ID: ${error.message || "Unknown error"}`
             );
         }
 
@@ -317,10 +346,15 @@ export class MemberRepository implements IMemberRepository {
         return Member.fromDB(data);
     }
 
-    async findAllByUserId(userId: string, realmSlugs?: string[]): Promise<Member[]> {
+    async findAllByUserId(
+        userId: string,
+        realmSlugs?: string[]
+    ): Promise<Member[]> {
         const { data, error } = await (() => {
             if (realmSlugs && realmSlugs.length > 0) {
-                const normalizedSlugs = realmSlugs.map(slug => slug.trim().toLowerCase());
+                const normalizedSlugs = realmSlugs.map((slug) =>
+                    slug.trim().toLowerCase()
+                );
                 return this.database
                     .from(MEMBER_TABLE)
                     .select("*")
@@ -331,12 +365,12 @@ export class MemberRepository implements IMemberRepository {
             return this.database
                 .from(MEMBER_TABLE)
                 .select("*")
-                .eq("user_id", userId)
-        })()
+                .eq("user_id", userId);
+        })();
 
         if (error) {
             throw new MemberRepositoryError(
-                `Error fetching members by user ID: ${error.message || "Unknown error"}`,
+                `Error fetching members by user ID: ${error.message || "Unknown error"}`
             );
         }
 

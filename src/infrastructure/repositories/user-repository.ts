@@ -8,7 +8,7 @@ const USER_TABLE = "users";
 const MEMBER_TABLE = "ev_member";
 
 export class UserRepository implements IUserRepository {
-    constructor(private readonly database: DatabaseClient) { }
+    constructor(private readonly database: DatabaseClient) {}
 
     async findById(id: string): Promise<User | null> {
         const { data, error } = await this.database
@@ -20,7 +20,7 @@ export class UserRepository implements IUserRepository {
 
         if (error) {
             throw new UserRepositoryError(
-                `Error fetching user by ID: ${error.message || "Unknown error"}`,
+                `Error fetching user by ID: ${error.message || "Unknown error"}`
             );
         }
 
@@ -41,7 +41,7 @@ export class UserRepository implements IUserRepository {
 
         if (error) {
             throw new UserRepositoryError(
-                `Error fetching user by username: ${error.message || "Unknown error"}`,
+                `Error fetching user by username: ${error.message || "Unknown error"}`
             );
         }
 
@@ -60,7 +60,7 @@ export class UserRepository implements IUserRepository {
 
         if (error) {
             throw new UserRepositoryError(
-                `Error fetching all users: ${error.message || "Unknown error"}`,
+                `Error fetching all users: ${error.message || "Unknown error"}`
             );
         }
 
@@ -81,19 +81,20 @@ export class UserRepository implements IUserRepository {
             .maybeSingle();
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new UserRepositoryError(
-                    "User with this ID or username already exists.",
+                    "User with this ID or username already exists."
                 );
             }
             throw new UserRepositoryError(
-                `Error saving user: ${error.message || "Unknown error"}`,
+                `Error saving user: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new UserRepositoryError(
-                "Failed to save user, no data returned from database",
+                "Failed to save user, no data returned from database"
             );
         }
 
@@ -111,19 +112,20 @@ export class UserRepository implements IUserRepository {
             .maybeSingle();
 
         if (error) {
-            if (error.code === "23505") { // Unique violation
+            if (error.code === "23505") {
+                // Unique violation
                 throw new UserRepositoryError(
-                    "User with this username already exists.",
+                    "User with this username already exists."
                 );
             }
             throw new UserRepositoryError(
-                `Error updating user: ${error.message || "Unknown error"}`,
+                `Error updating user: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             throw new UserRepositoryError(
-                "Failed to update user, no data returned from database",
+                "Failed to update user, no data returned from database"
             );
         }
 
@@ -138,12 +140,15 @@ export class UserRepository implements IUserRepository {
 
         if (error) {
             throw new UserRepositoryError(
-                `Error deleting user: ${error.message || "Unknown error"}`,
+                `Error deleting user: ${error.message || "Unknown error"}`
             );
         }
     }
 
-    async findCharactersByUserId(userId: string, realmSlug?: string): Promise<Member[]> {
+    async findCharactersByUserId(
+        userId: string,
+        realmSlug?: string
+    ): Promise<Member[]> {
         let query = this.database
             .from(MEMBER_TABLE)
             .select("*")
@@ -158,7 +163,7 @@ export class UserRepository implements IUserRepository {
 
         if (error) {
             throw new UserRepositoryError(
-                `Error fetching characters for user: ${error.message || "Unknown error"}`,
+                `Error fetching characters for user: ${error.message || "Unknown error"}`
             );
         }
 

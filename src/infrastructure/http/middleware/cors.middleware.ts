@@ -7,7 +7,7 @@ export const corsMiddleware = cors({
         "https://staging.everlastingvendetta.com",
         "http://localhost:3000",
         "http://host.docker.internal:3000",
-        "https://everlasting-vendetta.vercel.app"
+        "https://everlasting-vendetta.vercel.app",
     ],
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],

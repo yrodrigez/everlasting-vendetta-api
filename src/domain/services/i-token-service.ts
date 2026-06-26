@@ -5,7 +5,6 @@ import { RefreshTokenPayload } from "@dto/auth/refresh-token-payload";
 import { TokenPair } from "@dto/auth/token-pair";
 
 export interface ITokenService {
-
     generateTokenPair(input: GenerateTokenPairInput): TokenPair;
 
     verifyAccessToken(token: string): AccessTokenPayload;
@@ -14,9 +13,17 @@ export interface ITokenService {
 
     verifyAnonToken(token: string): AccessTokenPayload;
 
-    generateAccessToken(payload: Partial<AccessTokenPayload>): { token: string; expiry: number; jti: string };
+    generateAccessToken(payload: Partial<AccessTokenPayload>): {
+        token: string;
+        expiry: number;
+        jti: string;
+    };
 
-    generateRefreshToken(payload: Partial<RefreshTokenPayload>): { token: string; expiry: number; jti: string };
+    generateRefreshToken(payload: Partial<RefreshTokenPayload>): {
+        token: string;
+        expiry: number;
+        jti: string;
+    };
 
     signRefreshFromJti({
         jti,

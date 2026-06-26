@@ -15,7 +15,7 @@ type LinkInput = z.infer<typeof linkSchema>;
 const characterLinkRoute = new Hono();
 
 characterLinkRoute.post(
-    '/',
+    "/",
     authMiddleware,
     createRoute<LinkInput>(
         {

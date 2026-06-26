@@ -6,9 +6,9 @@ export class WowItem {
     readonly quality: {
         name: string;
         type: string;
-    }
+    };
     readonly itemLevel: number;
-    readonly stats: Array<{ type: string; value: number }>
+    readonly stats: Array<{ type: string; value: number }>;
     readonly tooltip: string;
 
     constructor({
@@ -42,7 +42,7 @@ export class WowItem {
         this.stats = stats;
         this.tooltip = tooltip;
     }
-     
+
     toJSON() {
         return {
             iconUrl: this.iconUrl,

@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { IWowItemCacheRepository, WowItemCacheEntry } from "src/domain/repositories/i-wow-item-cache-repository";
+import type {
+    IWowItemCacheRepository,
+    WowItemCacheEntry,
+} from "src/domain/repositories/i-wow-item-cache-repository";
 import type { WowItemDetails } from "src/domain/entities/wow/wow-item-details";
 
 type WowItemRow = {
@@ -10,7 +13,7 @@ type WowItemRow = {
 };
 
 export class WowItemCacheRepository implements IWowItemCacheRepository {
-    constructor(private readonly supabase: SupabaseClient) { }
+    constructor(private readonly supabase: SupabaseClient) {}
 
     async get(itemId: number): Promise<WowItemCacheEntry | null> {
         const { data, error } = await this.supabase
@@ -37,7 +40,11 @@ export class WowItemCacheRepository implements IWowItemCacheRepository {
         };
     }
 
-    async save(itemId: number, details: WowItemDetails, displayId: number | null): Promise<void> {
+    async save(
+        itemId: number,
+        details: WowItemDetails,
+        displayId: number | null
+    ): Promise<void> {
         const { error } = await this.supabase.from("wow_items").upsert({
             id: itemId,
             details,

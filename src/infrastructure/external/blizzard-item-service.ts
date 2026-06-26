@@ -1,16 +1,24 @@
-import { BlizzardItemDetails, IBlizzardItemService } from "src/domain/services/i-blizzard-item-service";
+import {
+    BlizzardItemDetails,
+    IBlizzardItemService,
+} from "src/domain/services/i-blizzard-item-service";
 
 export class BlizzardItemService implements IBlizzardItemService {
     private readonly apiBaseUrl: string;
 
     constructor(
         private readonly locale: string,
-        private readonly region: string,
+        private readonly region: string
     ) {
         this.apiBaseUrl = `https://${this.region}.api.blizzard.com`;
     }
 
-    async fetchItemDetails(token: string, itemId: number, namespace: string, fetchUrl?: string): Promise<BlizzardItemDetails> {
+    async fetchItemDetails(
+        token: string,
+        itemId: number,
+        namespace: string,
+        fetchUrl?: string
+    ): Promise<BlizzardItemDetails> {
         const url = fetchUrl ?? this.createItemUrl(itemId, namespace);
 
         const response = await fetch(url, {
@@ -21,11 +29,11 @@ export class BlizzardItemService implements IBlizzardItemService {
 
         if (!response.ok) {
             throw new Error(
-                `BlizzardItemService::fetchItemDetails - Failed to fetch item ${itemId}: ${response.status} ${response.statusText} try with: ${url} and token: ${token}`,
+                `BlizzardItemService::fetchItemDetails - Failed to fetch item ${itemId}: ${response.status} ${response.statusText} try with: ${url} and token: ${token}`
             );
         }
 
-        const data = await response.json() as {
+        const data = (await response.json()) as {
             level?: number;
             quality?: {
                 type?: string;

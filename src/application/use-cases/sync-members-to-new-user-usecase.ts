@@ -2,9 +2,7 @@ import { Member } from "@entities/member";
 import { IMemberRepository } from "@repositories/i-member-repository";
 
 export class SyncMembersToNewUserUseCase {
-    constructor(
-        private readonly memberRepository: IMemberRepository,
-    ) { }
+    constructor(private readonly memberRepository: IMemberRepository) {}
     async execute(userId: string, oldUserId: string): Promise<Member[]> {
         const members = await this.memberRepository.findAllByUserId(oldUserId);
 
@@ -14,8 +12,8 @@ export class SyncMembersToNewUserUseCase {
 
         await this.memberRepository.upsertMany(members);
 
-        const membersAfterSync = await this.memberRepository.findAllByUserId(userId);
-
+        const membersAfterSync =
+            await this.memberRepository.findAllByUserId(userId);
 
         return membersAfterSync;
     }

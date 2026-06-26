@@ -2,7 +2,10 @@ import { RouteContext } from "@http/hono-adapter";
 import { LinkCharacterUseCaseFactory } from "@infrastructure/factories/wow/link-character-usecase-factory";
 
 export class LinkCharacterController {
-    async handle({ input: { characterName, realmSlug }, c: context }: RouteContext<{
+    async handle({
+        input: { characterName, realmSlug },
+        c: context,
+    }: RouteContext<{
         characterName: string;
         realmSlug: string;
     }>) {

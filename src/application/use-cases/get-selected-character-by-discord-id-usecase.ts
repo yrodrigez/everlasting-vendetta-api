@@ -4,21 +4,34 @@ import { Member } from "@entities/member";
 
 export class GetSelectedCharacterByDiscordIdUseCase {
     constructor(
-        private readonly authRepository: Pick<IAuthRepository, 'findUserByProviderUserId'>,
-        private readonly memberRepository: Pick<IMemberRepository, 'findSelectedByUserId'>,
-    ) { }
+        private readonly authRepository: Pick<
+            IAuthRepository,
+            "findUserByProviderUserId"
+        >,
+        private readonly memberRepository: Pick<
+            IMemberRepository,
+            "findSelectedByUserId"
+        >
+    ) {}
 
     async execute(discordId: string): Promise<Member> {
-        const oauthProvider = await this.authRepository.findUserByProviderUserId(discordId, 'discord_oauth');
+        const oauthProvider =
+            await this.authRepository.findUserByProviderUserId(
+                discordId,
+                "discord_oauth"
+            );
 
         if (!oauthProvider) {
-            throw new Error('No user found for the provided Discord ID');
+            throw new Error("No user found for the provided Discord ID");
         }
 
-        const selectedCharacter = await this.memberRepository.findSelectedByUserId(oauthProvider.userId);
+        const selectedCharacter =
+            await this.memberRepository.findSelectedByUserId(
+                oauthProvider.userId
+            );
 
         if (!selectedCharacter) {
-            throw new Error('No selected character found for this user');
+            throw new Error("No selected character found for this user");
         }
 
         return selectedCharacter;

@@ -15,16 +15,15 @@ export interface GetCharacterAvatarOutput {
     updated: boolean;
 }
 
-
 export class GetCharacterAvatarUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly tokenRepository: ITokenRepository,
-        private readonly characterService: IWowCharacterService,
-    ) { }
+        private readonly characterService: IWowCharacterService
+    ) {}
 
     async execute(
-        input: GetCharacterAvatarInput,
+        input: GetCharacterAvatarInput
     ): Promise<GetCharacterAvatarOutput> {
         const realmSlug = input.realmSlug.trim().toLowerCase();
         const characterName = input.characterName.trim();
@@ -32,18 +31,16 @@ export class GetCharacterAvatarUseCase {
         const existingMember =
             await this.memberRepository.findByRealmSlugAndName(
                 realmSlug,
-                characterName,
+                characterName
             );
 
         const storedAvatar = existingMember?.character.avatar ?? null;
         const hasStoredAvatar = Boolean(
-            storedAvatar && !storedAvatar.toLowerCase().includes("anon"),
+            storedAvatar && !storedAvatar.toLowerCase().includes("anon")
         );
 
         const shouldRefresh =
-            input.forceRefresh === true ||
-            !existingMember ||
-            !hasStoredAvatar;
+            input.forceRefresh === true || !existingMember || !hasStoredAvatar;
 
         if (!shouldRefresh && storedAvatar) {
             return {
@@ -54,8 +51,7 @@ export class GetCharacterAvatarUseCase {
         }
 
         const token = await this.tokenRepository.getCurrentToken();
-        
-        
+
         const fetchedAvatar = await this.characterService.getCharacterAvatar(
             realmSlug,
             characterName,
@@ -74,7 +70,7 @@ export class GetCharacterAvatarUseCase {
                     },
                     existingMember.registrationSource,
                     existingMember.created_at,
-                    new Date(),
+                    new Date()
                 );
 
                 await this.memberRepository.update(updatedMember);
@@ -86,9 +82,7 @@ export class GetCharacterAvatarUseCase {
             source: "blizzard",
             updated:
                 existingMember !== null &&
-                (input.forceRefresh === true ||
-                    fetchedAvatar !== storedAvatar),
+                (input.forceRefresh === true || fetchedAvatar !== storedAvatar),
         };
     }
 }
-

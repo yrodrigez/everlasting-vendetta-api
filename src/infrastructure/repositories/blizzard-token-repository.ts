@@ -14,7 +14,7 @@ export class BlizzardTokenRepository implements ITokenRepository {
 
     constructor(
         private readonly database: DatabaseClient,
-        private readonly blizzardApiClient: BlizzardOauthService,
+        private readonly blizzardApiClient: BlizzardOauthService
     ) {}
 
     async getCurrentToken(): Promise<BlizzardToken> {
@@ -31,7 +31,7 @@ export class BlizzardTokenRepository implements ITokenRepository {
         if (error) {
             this.logger.error("Database error fetching token", error);
             throw new TokenNotFoundError(
-                `Error fetching token: ${error.message || "Unknown error"}`,
+                `Error fetching token: ${error.message || "Unknown error"}`
             );
         }
 
@@ -69,14 +69,14 @@ export class BlizzardTokenRepository implements ITokenRepository {
         if (error) {
             this.logger.error("Database error saving token", error);
             throw new TokenSaveError(
-                `Error saving token: ${error.message || "Unknown error"}`,
+                `Error saving token: ${error.message || "Unknown error"}`
             );
         }
 
         if (!data) {
             this.logger.error("No data returned after token save");
             throw new TokenNotFoundError(
-                "Failed to save token, no data returned from database",
+                "Failed to save token, no data returned from database"
             );
         }
 

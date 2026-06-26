@@ -17,7 +17,8 @@ export type HighestGS = {
 export interface HighestGSPort {
     getHighestGS(
         characterName: string,
-        realmSlug: string
+        realmSlug: string,
+        forceRefresh?: boolean
     ): Promise<HighestGS | null>;
     saveHighestGS(gs: HighestGS): Promise<HighestGS>;
 }

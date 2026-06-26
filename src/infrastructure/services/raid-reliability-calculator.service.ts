@@ -14,20 +14,19 @@ const NEUTRAL_RELIABILITY = 55;
 const FULL_CONFIDENCE_AFTER_WEEKS = 8;
 
 export class RaidReadinessScoreCalculatorService implements RRSCalculator {
-
     private getReliabilityConfidence(weeksConsidered: number): number {
-        return Math.min(weeksConsidered / FULL_CONFIDENCE_AFTER_WEEKS, 1)
+        return Math.min(weeksConsidered / FULL_CONFIDENCE_AFTER_WEEKS, 1);
     }
 
     private getEffectiveReliability(
         reliability: number,
         weeksConsidered: number
     ): number {
-        const confidence = this.getReliabilityConfidence(weeksConsidered)
+        const confidence = this.getReliabilityConfidence(weeksConsidered);
 
         return (
             NEUTRAL_RELIABILITY * (1 - confidence) + reliability * confidence
-        )
+        );
     }
 
     private getSignupTimingMultiplier(
@@ -43,7 +42,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         return (
             latestSignupMultiplier +
             (cappedHours / 72) *
-            (earliestSignupMultiplier - latestSignupMultiplier)
+                (earliestSignupMultiplier - latestSignupMultiplier)
         );
     }
 
@@ -56,7 +55,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
         raidDateTime: Date,
         isFullyGemmed: boolean,
         isFullyGemmedActive: boolean
-    ): { rrs: number, multipliers: Record<string, number> } => {
+    ): { rrs: number; multipliers: Record<string, number> } => {
         let modifiedRRS = rrs;
         const multipliers: Record<string, number> = {};
 
@@ -118,7 +117,9 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
             isFullyGemmedActive
         );
 
-        const confidence = this.getReliabilityConfidence(weeksSinceAccountCreation);
+        const confidence = this.getReliabilityConfidence(
+            weeksSinceAccountCreation
+        );
         return {
             rrs,
             multipliers,
@@ -130,7 +131,7 @@ export class RaidReadinessScoreCalculatorService implements RRSCalculator {
                 effectiveReliability: effectiveReliability,
                 weeksConsidered: weeksSinceAccountCreation,
                 fullConfidenceAfterWeeks: FULL_CONFIDENCE_AFTER_WEEKS,
-            }
-        }
+            },
+        };
     }
 }

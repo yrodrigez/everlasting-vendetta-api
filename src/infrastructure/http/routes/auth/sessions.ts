@@ -8,17 +8,17 @@ import { AuthRepository } from "src/infrastructure/repositories/auth-repository"
 const sessionsRoute = new Hono();
 
 sessionsRoute.get(
-    '/',
+    "/",
     authMiddleware,
     createRoute(
         {
             functionName: "auth-sessions",
         },
         async ({ c }) => {
-            const user = c.get('user');
-            
+            const user = c.get("user");
+
             if (!user) {
-                throw new Error('User not authenticated');
+                throw new Error("User not authenticated");
             }
 
             const database = DatabaseClientFactory.getInstance();
@@ -27,7 +27,7 @@ sessionsRoute.get(
 
             const result = await useCase.execute({
                 userId: user.sub,
-                currentJti: user.jti
+                currentJti: user.jti,
             });
 
             return result;

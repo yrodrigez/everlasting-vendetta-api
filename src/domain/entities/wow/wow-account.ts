@@ -3,7 +3,7 @@ import { WoWCharacter } from "./wow-character.ts";
 export class WoWAccount {
     constructor(
         public readonly id: number,
-        public readonly characters: WoWCharacter[] = [],
+        public readonly characters: WoWCharacter[] = []
     ) {}
 
     filterByRealm(realm: string | string[]): WoWAccount {
@@ -15,7 +15,7 @@ export class WoWAccount {
                 }
 
                 return character.realm.slug === realm;
-            }),
+            })
         );
     }
 
@@ -25,7 +25,7 @@ export class WoWAccount {
             id,
             characters?.map((char: any) =>
                 WoWCharacter.fromApiResponse({ ...char, wow_account_id: id })
-            ) || [],
+            ) || []
         );
     }
 }

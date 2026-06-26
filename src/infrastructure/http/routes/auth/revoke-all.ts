@@ -8,17 +8,17 @@ import { AuthRepository } from "src/infrastructure/repositories/auth-repository"
 const revokeAllRoute = new Hono();
 
 revokeAllRoute.post(
-    '/',
+    "/",
     authMiddleware,
     createRoute(
         {
             functionName: "auth-revoke-all",
         },
         async ({ c }) => {
-            const user = c.get('user');
-            
+            const user = c.get("user");
+
             if (!user) {
-                throw new Error('User not authenticated');
+                throw new Error("User not authenticated");
             }
 
             const database = DatabaseClientFactory.getInstance();
@@ -27,7 +27,7 @@ revokeAllRoute.post(
 
             const result = await useCase.execute({
                 userId: user.sub,
-                reason: 'logout_all'
+                reason: "logout_all",
             });
 
             return result;

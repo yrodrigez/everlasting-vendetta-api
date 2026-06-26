@@ -1,14 +1,15 @@
 import { DatabaseClient } from "@database/database-client-factory";
-import { UserRegistrationWeeksPort, UserRegistrationWeeksResult } from "src/application/ports/user/user-registration-weeks.port";
+import {
+    UserRegistrationWeeksPort,
+    UserRegistrationWeeksResult,
+} from "src/application/ports/user/user-registration-weeks.port";
 
-
-
-export class UserRegistrationWeeksRepository
-    implements UserRegistrationWeeksPort
-{
+export class UserRegistrationWeeksRepository implements UserRegistrationWeeksPort {
     constructor(private readonly databaseClient: DatabaseClient) {}
-    
-    async getUserRegistrationWeeks(userId: string): Promise<UserRegistrationWeeksResult> {
+
+    async getUserRegistrationWeeks(
+        userId: string
+    ): Promise<UserRegistrationWeeksResult> {
         const userIdParam = "p_user_id";
         const { data, error } = await this.databaseClient.rpc(
             "get_user_registration_weeks",
@@ -26,9 +27,11 @@ export class UserRegistrationWeeksRepository
         const record = data?.[0];
         return {
             userId: record?.[userIdParam] ?? userId,
-            registeredAt: record?.registered_at ? new Date(record.registered_at) : null,
+            registeredAt: record?.registered_at
+                ? new Date(record.registered_at)
+                : null,
             weeksSinceRegistration: Number(record?.weeks_since_registered ?? 0),
             characterName: record?.character_name ?? null,
-        }
+        };
     }
 }

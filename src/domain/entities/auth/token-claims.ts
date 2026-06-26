@@ -17,27 +17,25 @@ export class TokenClaims implements JWTPayload {
     readonly exp?: number | undefined;
     readonly iat?: number | undefined;
     readonly [propName: string]: unknown;
-    constructor(
-        {
-            iss,
-            sub,
-            aud,
-            jti,
-            nbf,
-            exp,
-            iat,
-            ...customClaims
-        }: {
-            iss?: string;
-            sub?: string;
-            aud?: string | string[];
-            jti?: string;
-            nbf?: number;
-            exp?: number;
-            iat?: number;
-            [propName: string]: unknown;
-        }
-    ) {
+    constructor({
+        iss,
+        sub,
+        aud,
+        jti,
+        nbf,
+        exp,
+        iat,
+        ...customClaims
+    }: {
+        iss?: string;
+        sub?: string;
+        aud?: string | string[];
+        jti?: string;
+        nbf?: number;
+        exp?: number;
+        iat?: number;
+        [propName: string]: unknown;
+    }) {
         this.iss = iss;
         this.sub = sub;
         this.aud = aud;

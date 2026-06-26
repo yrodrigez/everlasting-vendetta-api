@@ -5,11 +5,11 @@ export interface ICharacterValidationService {
     validateCharacterExists(
         realmSlug: string,
         characterName: string,
-        accessToken: string,
+        accessToken: string
     ): Promise<WoWCharacter>;
     isCharacterAvailable(
         characterId: number,
-        currentUserId: string,
+        currentUserId: string
     ): Promise<{
         available: boolean;
         takenBy?: string;

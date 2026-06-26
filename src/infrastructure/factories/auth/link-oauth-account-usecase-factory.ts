@@ -11,11 +11,19 @@ export class LinkOAuthAccountUseCaseFactory {
         const databaseClient = DatabaseClientFactory.getInstance();
         const repo = new AuthRepository(databaseClient);
 
-        const syncBattlenetMembersToUserUsecase = SyncBattlenetMembersToUserUsecaseFactory.make();
-        const syncMembersToNewUserUseCase = SyncMembersToNewUserUseCaseFactory.make();
+        const syncBattlenetMembersToUserUsecase =
+            SyncBattlenetMembersToUserUsecaseFactory.make();
+        const syncMembersToNewUserUseCase =
+            SyncMembersToNewUserUseCaseFactory.make();
         const discordApiClient = new DiscordApi();
         const blizzardOAuthService = new BlizzardOauthService();
 
-        return new LinkOAuthAccountUseCase(repo, syncBattlenetMembersToUserUsecase, syncMembersToNewUserUseCase, discordApiClient, blizzardOAuthService);
+        return new LinkOAuthAccountUseCase(
+            repo,
+            syncBattlenetMembersToUserUsecase,
+            syncMembersToNewUserUseCase,
+            discordApiClient,
+            blizzardOAuthService
+        );
     }
-} 
+}

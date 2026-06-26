@@ -4,13 +4,11 @@ import { createLogger } from "../../infrastructure/logging/logger.ts";
 
 export default class GetFullCharactersUsecase {
     private readonly logger = createLogger("GetFullCharactersUsecase");
-    constructor(
-        private characterService: IWowCharacterService,
-    ) { }
+    constructor(private characterService: IWowCharacterService) {}
 
     async execute(
-        characters: { realmSlug: string; name: string, level: number }[],
-        accessToken: string,
+        characters: { realmSlug: string; name: string; level: number }[],
+        accessToken: string
     ): Promise<WoWCharacter[]> {
         const result = await Promise.all(
             characters.map(async (char) => {
@@ -18,20 +16,26 @@ export default class GetFullCharactersUsecase {
                     if (char.level < 10) {
                         return char;
                     }
-                    
-                    const character = await this.characterService.getCharacterWithAvatar(
-                        char.realmSlug,
-                        char.name,
-                        accessToken,
+
+                    const character =
+                        await this.characterService.getCharacterWithAvatar(
+                            char.realmSlug,
+                            char.name,
+                            accessToken
+                        );
+                    this.logger.info(
+                        `Fetched character ${char.name} on realm ${char.realmSlug} with level ${character.level}`
                     );
-                    this.logger.info(`Fetched character ${char.name} on realm ${char.realmSlug} with level ${character.level}`);
 
                     return character;
                 } catch (e) {
-                    this.logger.error(`Error fetching character ${char.name} with level on realm ${char.realmSlug}`, e);
+                    this.logger.error(
+                        `Error fetching character ${char.name} with level on realm ${char.realmSlug}`,
+                        e
+                    );
                     return char;
                 }
-            }),
+            })
         );
         return result.filter(Boolean) as WoWCharacter[];
     }

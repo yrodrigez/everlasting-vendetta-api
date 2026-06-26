@@ -4,9 +4,7 @@ import {
     RaidResetsParticipantPort,
 } from "src/application/ports/raid-resets/reset-participants.port";
 
-export class RaidResetParticipantsRepository
-    implements RaidResetsParticipantPort
-{
+export class RaidResetParticipantsRepository implements RaidResetsParticipantPort {
     constructor(
         private readonly databaseClient: DatabaseClient // Replace with actual database client type
     ) {}

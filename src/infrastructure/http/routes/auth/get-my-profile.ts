@@ -7,22 +7,30 @@ import { Hono } from "hono";
 
 const route = new Hono();
 
-route.get('/',
+route.get(
+    "/",
     authMiddleware,
-    createRoute({
-        functionName: "get-my-profile",
-    }, async (ctx) => {
-        const user = ctx.c.get('user');
-        if (!user) {
-            throw new AuthError('User not authenticated', 'USER_NOT_AUTHENTICATED', 401);
+    createRoute(
+        {
+            functionName: "get-my-profile",
+        },
+        async (ctx) => {
+            const user = ctx.c.get("user");
+            if (!user) {
+                throw new AuthError(
+                    "User not authenticated",
+                    "USER_NOT_AUTHENTICATED",
+                    401
+                );
+            }
+            const currentUserId = user.userId;
+
+            const usecase = GetMyProfileUseCaseFactory.make();
+
+            const controller = new GetMyProfileController(usecase);
+            return controller.handle({ userId: currentUserId });
         }
-        const currentUserId = user.userId;
-
-        const usecase = GetMyProfileUseCaseFactory.make();
-
-        const controller = new GetMyProfileController(usecase);
-        return controller.handle({ userId: currentUserId });
-    })
+    )
 );
 
 export const getMyProfileRoute = route;

@@ -9,22 +9,30 @@ import {
     FindOrCreateUserDTO,
     MarkTokenAsRotatedDTO,
     OauthProviderDTO,
-    FindOrCreateUserResponseDTO
+    FindOrCreateUserResponseDTO,
 } from "@dto/auth";
 import { Provider } from "@dto/auth/provider";
 import { LinkOAuthAccount } from "@entities/auth/link-oauth-account";
 import { OAuthProvider } from "@entities/auth/oauth-provider";
 
 export interface IAuthRepository {
-    findOrCreateUser(dto: FindOrCreateUserDTO): Promise<FindOrCreateUserResponseDTO>;
+    findOrCreateUser(
+        dto: FindOrCreateUserDTO
+    ): Promise<FindOrCreateUserResponseDTO>;
 
-    findUserByProviderUserId(providerUserId: string, provider: Provider): Promise<OAuthProvider | null>;
+    findUserByProviderUserId(
+        providerUserId: string,
+        provider: Provider
+    ): Promise<OAuthProvider | null>;
 
     storeOauthToken(dto: StoreOauthTokenDTO): Promise<void>;
 
     storeRefreshToken(dto: StoreRefreshTokenDTO): Promise<void>;
 
-    getOauthProvider(userId: string, provider: Provider): Promise<OauthProviderDTO | null>;
+    getOauthProvider(
+        userId: string,
+        provider: Provider
+    ): Promise<OauthProviderDTO | null>;
 
     getRefreshToken(tokenJti: string): Promise<RefreshToken | null>;
 
@@ -44,7 +52,10 @@ export interface IAuthRepository {
 
     findTokenByJti(tokenJti: string): Promise<RefreshToken | null>;
 
-    getActiveFamilyToken(familyId: string, provider: Provider): Promise<RefreshToken | null>;
+    getActiveFamilyToken(
+        familyId: string,
+        provider: Provider
+    ): Promise<RefreshToken | null>;
 
     linkOAuthAccount(data: LinkOAuthAccount): Promise<OAuthProvider>;
 

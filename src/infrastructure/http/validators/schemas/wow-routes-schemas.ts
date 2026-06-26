@@ -5,7 +5,9 @@ export const wowProfileCharactersSchema = z.object({
     realmSlug: z.string().min(1, "Realm slug is required"),
 });
 
-export type WowProfileCharactersInput = z.infer<typeof wowProfileCharactersSchema>;
+export type WowProfileCharactersInput = z.infer<
+    typeof wowProfileCharactersSchema
+>;
 
 // Schema for user characters endpoint - uses Authorization header and query params
 export const userCharactersQuerySchema = z.object({

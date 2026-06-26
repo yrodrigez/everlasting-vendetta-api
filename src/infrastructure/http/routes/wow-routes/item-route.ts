@@ -30,14 +30,13 @@ wowItemRouter.get(
         async ({ query, params }) => {
             const itemId = params.itemId;
             if (!Number.isFinite(itemId) || itemId <= 0) {
-                throw new Error(
-                    "Invalid itemId parameter provided: " + itemId,
-                );
+                throw new Error("Invalid itemId parameter provided: " + itemId);
             }
 
             if (itemId === 999999) {
                 return {
-                    itemIconUrl: "https://wow.zamimg.com/images/wow/icons/medium/inventoryslot_empty.jpg",
+                    itemIconUrl:
+                        "https://wow.zamimg.com/images/wow/icons/medium/inventoryslot_empty.jpg",
                     itemDetails: {
                         id: itemId,
                         name: "Unknown Item",
@@ -66,20 +65,20 @@ wowItemRouter.get(
             const itemService = new ItemService(databaseClient);
             const tokenRepository = new BlizzardTokenRepository(
                 databaseClient,
-                new BlizzardOauthService(),
+                new BlizzardOauthService()
             );
 
             const useCase = new GetWowItemDetailsUseCase(
                 itemService,
-                tokenRepository,
+                tokenRepository
             );
 
             return useCase.execute({
                 itemId,
                 forceRefresh,
             });
-        },
-    ),
+        }
+    )
 );
 
 function normalizeForceFlag(value?: string | null): boolean {

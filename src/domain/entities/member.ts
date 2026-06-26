@@ -9,10 +9,10 @@ export type MemberCharacter = {
         slug: string;
     };
     level: number;
-    "playable_class": {
+    playable_class: {
         name?: string;
     };
-    "character_class": {
+    character_class: {
         name?: string;
     };
     guild?: {
@@ -21,12 +21,13 @@ export type MemberCharacter = {
         rank: number;
     };
     avatar: string;
-    "last_login_timestamp": number;
+    last_login_timestamp: number;
     selectedRole?: string;
     faction: string;
 };
 
 export class Member {
+    is_selected: boolean;
     constructor(
         public readonly id: number,
         public _userId: string | undefined,
@@ -35,20 +36,28 @@ export class Member {
         public readonly registrationSource?: string,
         public readonly created_at?: Date,
         public readonly updated_at?: Date,
-    ) { 
+        public readonly isSelected?: boolean
+    ) {
         this._userId = _userId;
+        this.is_selected = isSelected || false;
     }
 
     public set userId(userId: string) {
         this._userId = userId;
     }
-    
+
     public get userId(): string | undefined {
         return this._userId;
     }
 
-
-    static fromWoWCharacter(character: WoWCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string | null, createdAt: Date | undefined, updatedAt: Date | undefined): Member {
+    static fromWoWCharacter(
+        character: WoWCharacter,
+        userId: string | undefined,
+        wowAccountId: number,
+        registrationSource: string | null,
+        createdAt: Date | undefined,
+        updatedAt: Date | undefined
+    ): Member {
         return new Member(
             character.id,
             userId,
@@ -69,18 +78,23 @@ export class Member {
             registrationSource || undefined,
             createdAt,
             updatedAt
-        )
+        );
     }
 
     /**
      * @deprecated Use Member.fromWoWCharacter instead
-     * @param character 
-     * @param userId 
-     * @param wowAccountId 
-     * @param registrationSource 
-     * @returns 
+     * @param character
+     * @param userId
+     * @param wowAccountId
+     * @param registrationSource
+     * @returns
      */
-    static fromWowCharacter(character: MemberCharacter, userId: string | undefined, wowAccountId: number, registrationSource: string): Member {
+    static fromWowCharacter(
+        character: MemberCharacter,
+        userId: string | undefined,
+        wowAccountId: number,
+        registrationSource: string
+    ): Member {
         return new Member(
             character.id,
             userId,
@@ -114,10 +128,10 @@ export class Member {
                 },
                 guild: row.character.guild?.id
                     ? {
-                        id: row.character.guild.id,
-                        name: row.character.guild.name,
-                        rank: row.character.guild.rank,
-                    }
+                          id: row.character.guild.id,
+                          name: row.character.guild.name,
+                          rank: row.character.guild.rank,
+                      }
                     : undefined,
                 avatar: row.character.avatar || "/avatar-anon.png",
                 last_login_timestamp: row.character.last_login_timestamp,
@@ -126,6 +140,7 @@ export class Member {
             row.registration_source || "bnet_oauth",
             new Date(row.created_at),
             row.updated_at ? new Date(row.updated_at) : undefined,
+            row.is_selected
         );
     }
 
@@ -136,8 +151,13 @@ export class Member {
             wow_account_id: this.wowAccountId,
             character: this.character,
             registration_source: this.registrationSource,
-            ...(this.created_at && { created_at: this.created_at.toISOString() }),
-            ...(this.updated_at && { updated_at: this.updated_at.toISOString() }),
+            is_selected: this.is_selected,
+            ...(this.created_at && {
+                created_at: this.created_at.toISOString(),
+            }),
+            ...(this.updated_at && {
+                updated_at: this.updated_at.toISOString(),
+            }),
         };
     }
 }

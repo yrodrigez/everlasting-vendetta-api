@@ -6,9 +6,7 @@ export class SyncMembersToNewUserUseCaseFactory {
     static make() {
         const databaseClient = DatabaseClientFactory.getInstance();
         const memberRepository = new MemberRepository(databaseClient);
-        
-        return new SyncMembersToNewUserUseCase(
-            memberRepository,
-        );
+
+        return new SyncMembersToNewUserUseCase(memberRepository);
     }
 }

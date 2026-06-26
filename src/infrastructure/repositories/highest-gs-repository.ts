@@ -12,13 +12,26 @@ type HighestGSRow = {
     details: HighestGS["details"];
 };
 
+const cacheDurationMs = 1000 * 60 * 60; // 1 hour
+const cache = new Map<string, { data: HighestGS; timestamp: number }>();
 export class HighestGSRepository implements HighestGSPort {
-    constructor(private readonly databaseClient: DatabaseClient) { }
+    constructor(private readonly databaseClient: DatabaseClient) {}
 
     async getHighestGS(
         characterName: string,
-        realmSlug: string
+        realmSlug: string,
+        forceRefresh?: boolean
     ): Promise<HighestGS | null> {
+        const cacheKey = `${characterName}:${realmSlug}`;
+        if (!forceRefresh && cache.has(cacheKey)) {
+            const cached = cache.get(cacheKey)!;
+            if (Date.now() - cached.timestamp < cacheDurationMs) {
+                return cached.data;
+            } else {
+                cache.delete(cacheKey);
+            }
+        }
+
         const { data, error } = await this.databaseClient
             .from("highest_gs")
             .select(
@@ -28,6 +41,12 @@ export class HighestGSRepository implements HighestGSPort {
             .eq("character_realm", this.normalize(realmSlug))
             .maybeSingle();
 
+        if (data) {
+            cache.set(cacheKey, {
+                data: this.toHighestGS(data as HighestGSRow),
+                timestamp: Date.now(),
+            });
+        }
 
         if (error) {
             throw new Error(

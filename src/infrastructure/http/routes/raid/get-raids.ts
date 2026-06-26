@@ -5,7 +5,7 @@ import { GetRaidsUseCaseFactory } from "src/infrastructure/factories/raid/get-ra
 const getRaidsRoute = new Hono();
 
 getRaidsRoute.get(
-    '/',
+    "/",
     createRoute(
         {
             functionName: "get-raids",

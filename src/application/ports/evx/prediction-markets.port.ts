@@ -22,5 +22,9 @@ export interface PredictionMarketPort {
         input: FinalizePredictionMarketInput
     ): Promise<PredictionMarketDetails>;
     cancelMarket(marketId: string): Promise<PredictionMarketDetails>;
-    predictCurrentPayout(userId: string, marketId: string, outcomeId: string): Promise<number>;
+    predictCurrentPayout(
+        userId: string,
+        marketId: string,
+        outcomeId: string
+    ): Promise<number>;
 }

@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apk upgrade --no-cache
 
-RUN npm install -g pnpm@11.1.3
+RUN npm install -g pnpm@11.8.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 

@@ -13,12 +13,10 @@ export interface RevokeAllTokensOutput {
 }
 
 export class RevokeAllTokensUseCase {
-    constructor(
-        private readonly authRepository: IAuthRepository
-    ) { }
+    constructor(private readonly authRepository: IAuthRepository) {}
 
     async execute(input: RevokeAllTokensInput): Promise<RevokeAllTokensOutput> {
-        const { userId, reason = 'logout_all' } = input;
+        const { userId, reason = "logout_all" } = input;
 
         // Get current sessions count before revoking
         const sessions = await this.authRepository.getUserSessions(userId);
@@ -30,7 +28,7 @@ export class RevokeAllTokensUseCase {
         return {
             success: true,
             message: `Successfully revoked all sessions`,
-            revokedCount: count
+            revokedCount: count,
         };
     }
 }

@@ -16,32 +16,30 @@ export interface RevokeTokenOutput {
 }
 
 export class RevokeTokenUseCase {
-    private readonly logger = createLogger('RevokeTokenUseCase');
+    private readonly logger = createLogger("RevokeTokenUseCase");
     constructor(
         private readonly authRepository: IAuthRepository,
-        private readonly eventTracker: IEventTrackingService,
-    ) { }
+        private readonly eventTracker: IEventTrackingService
+    ) {}
 
     async execute(input: RevokeTokenInput): Promise<RevokeTokenOutput> {
-        const { userId, tokenJti, reason = 'manual' } = input;
+        const { userId, tokenJti, reason = "manual" } = input;
 
         // Get the token to verify it belongs to the user
-        this.logger.info(`User ${userId} is attempting to revoke token ${tokenJti}`);
+        this.logger.info(
+            `User ${userId} is attempting to revoke token ${tokenJti}`
+        );
         const token = await this.authRepository.getRefreshToken(tokenJti);
 
         if (!token) {
-            throw new AuthError(
-                'Token not found',
-                'TOKEN_NOT_FOUND',
-                404
-            );
+            throw new AuthError("Token not found", "TOKEN_NOT_FOUND", 404);
         }
 
         // Verify the token belongs to the requesting user
         if (token.userId !== userId) {
             throw new AuthError(
-                'You do not have permission to revoke this token',
-                'FORBIDDEN',
+                "You do not have permission to revoke this token",
+                "FORBIDDEN",
                 403
             );
         }
@@ -49,8 +47,8 @@ export class RevokeTokenUseCase {
         // Check if already revoked
         if (token.revoked) {
             throw new AuthError(
-                'Token is already revoked',
-                'TOKEN_ALREADY_REVOKED',
+                "Token is already revoked",
+                "TOKEN_ALREADY_REVOKED",
                 400
             );
         }
@@ -58,19 +56,19 @@ export class RevokeTokenUseCase {
         // Revoke the token
         await this.authRepository.revokeRefreshToken({
             tokenJti,
-            reason
+            reason,
         });
 
         await this.eventTracker.track({
-            event_name: 'token_revoke',
-            event_type: 'auth',
+            event_name: "token_revoke",
+            event_type: "auth",
             user_id: userId,
             metadata: { reason },
         });
 
         return {
             success: true,
-            message: 'Token revoked successfully'
+            message: "Token revoked successfully",
         };
     }
 }

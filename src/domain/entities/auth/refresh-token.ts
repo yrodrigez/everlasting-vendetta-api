@@ -36,7 +36,7 @@ export class RefreshToken {
         deviceFingerprint = null,
         isRotated = false,
         rotatedTo = null,
-        previousValidUntil = null
+        previousValidUntil = null,
     }: {
         id?: string;
         userId: string;
@@ -103,7 +103,11 @@ export class RefreshToken {
             expiresAt: new Date(row.expires_at),
             createdAt: new Date(row.created_at),
             lastUsedAt: row.last_used_at ? new Date(row.last_used_at) : null,
-            revoked: row.revoked_reason ? true : row.revoked_at ? true : row.revoked,
+            revoked: row.revoked_reason
+                ? true
+                : row.revoked_at
+                  ? true
+                  : row.revoked,
             revokedAt: row.revoked_at ? new Date(row.revoked_at) : null,
             revokedReason: row.revoked_reason,
             ipAddress: row.ip_address,
@@ -111,8 +115,9 @@ export class RefreshToken {
             deviceFingerprint: row.device_fingerprint,
             isRotated: row.is_rotated,
             rotatedTo: row.rotated_to_jti,
-            previousValidUntil: row.previous_valid_until ? new Date(row.previous_valid_until) : null,
+            previousValidUntil: row.previous_valid_until
+                ? new Date(row.previous_valid_until)
+                : null,
         });
     }
-
 }

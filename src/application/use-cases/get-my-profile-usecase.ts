@@ -4,16 +4,16 @@ import { IMemberRepository } from "@repositories/i-member-repository";
 export class GetMyProfileUseCase {
     constructor(
         private readonly memberRepository: IMemberRepository,
-        private readonly authRepository: IAuthRepository,
-    ) { }
+        private readonly authRepository: IAuthRepository
+    ) {}
     async execute(userId: string) {
         const members = await this.memberRepository.findAllByUserId(userId);
         const authProviders = await this.authRepository.findAllByUserId(userId);
 
         return {
-            members: members.map(member => member.toJSON()),
+            members: members.map((member) => member.toJSON()),
             accounts: authProviders,
-            mainCharacter: members.find(m => m.character.name === 'Alveric')
+            mainCharacter: members.find((m) => m.character.name === "Alveric"),
         };
     }
 }

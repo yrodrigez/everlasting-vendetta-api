@@ -32,7 +32,6 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
             highestGSRepository
         );
 
-
         return new CalculateResetRaidReadinessScoreUseCase(
             new RaidResetsRepository(databaseClient),
             new CharacterEquipmentService(),
@@ -43,7 +42,7 @@ export class CalculateResetRaidReadinessScoreUseCaseFactory {
             new WowGuildService(),
             new UserRegistrationWeeksRepository(databaseClient),
             highestGSRepository,
-            gearScoreResolver,
+            gearScoreResolver
         );
     }
 }

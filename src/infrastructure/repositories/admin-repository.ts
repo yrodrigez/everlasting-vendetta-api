@@ -4,10 +4,7 @@ import { createLogger } from "../logging/index.ts";
 
 export class AdminRepository implements IAdminRepository {
     private logger = createLogger("AdminRepository");
-    constructor(
-        private readonly database: DatabaseClient,
-    ) {
-    }
+    constructor(private readonly database: DatabaseClient) {}
 
     async isAdmin(userId: number): Promise<boolean> {
         this.logger.debug(`Checking if user ID ${userId} is an admin`);
@@ -18,9 +15,11 @@ export class AdminRepository implements IAdminRepository {
             .limit(1)
             .single();
 
-
         if (error) {
-            this.logger.error(`Error checking admin status for user ID ${userId}:`, error);
+            this.logger.error(
+                `Error checking admin status for user ID ${userId}:`,
+                error
+            );
             return false;
         }
         this.logger.debug(`User ID ${userId} admin status: ${!!data}`);

@@ -5,10 +5,10 @@ export interface AccessTokenPayload {
     sub: string;
     iat: number;
     exp: number;
-    role: 'authenticated' | 'anon';
-    aud: 'authenticated';
-    type: 'access';
-    aal: 'aal1';
+    role: "authenticated" | "anon";
+    aud: "authenticated";
+    type: "access";
+    aal: "aal1";
     isTemporal: boolean;
     isAdmin: boolean;
     email?: string;

@@ -1,5 +1,5 @@
-import {WowUserProfile} from "../entities/wow/wow-user-profile.ts";
+import { WowUserProfile } from "../entities/wow/wow-user-profile.ts";
 
 export interface IWowAccountService {
-	getWoWAccount(token: string): Promise<WowUserProfile>;
+    getWoWAccount(token: string): Promise<WowUserProfile>;
 }
