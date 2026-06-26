@@ -16,6 +16,7 @@ import { ItemService } from "@external/item-service";
 import { CalculateGearScoreUseCase } from "@use-cases/calculate-gearscore-usecase";
 import { authMiddleware } from "@http/middleware/auth.middleware";
 import { GearScoreResolver } from "src/application/services/gear-score/gear-score-resolver";
+import { RedisStoreFactory } from "@infrastructure/redis/redis-store-factory";
 
 const gearscoreRoutes = new Hono();
 
@@ -35,6 +36,7 @@ gearscoreRoutes.post(
         },
         async ({ input }) => {
             const databaseClient = DatabaseClientFactory.getInstance();
+            const store = RedisStoreFactory.getInstance();
             const blizzardOauthService = new BlizzardOauthService();
 
             const tokenRepository = new BlizzardTokenRepository(
@@ -44,9 +46,16 @@ gearscoreRoutes.post(
             const cacheRepository = new GearScoreCacheRepository(
                 databaseClient
             );
-            const highestGSRepository = new HighestGSRepository(databaseClient);
+            const highestGSRepository = new HighestGSRepository(
+                databaseClient,
+                store
+            );
             const equipmentService = new CharacterEquipmentService();
-            const itemService = new ItemService(databaseClient);
+            const itemService = new ItemService(
+                databaseClient,
+                undefined,
+                store
+            );
             const gearScoreResolver = new GearScoreResolver(
                 cacheRepository,
                 itemService,

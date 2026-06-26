@@ -39,7 +39,20 @@ describe("GearScoreResolver", () => {
                 })),
                 save: jest.fn(),
             } as any,
-            { getItem: jest.fn() } as any,
+            {
+                getItem: jest.fn(async () => ({
+                    itemLevel: 100,
+                    quality: {
+                        type: "EPIC",
+                        name: "Epic",
+                    },
+                    icon: "icon.jpg",
+                    displayId: 1,
+                    id: 1,
+                    name: "Item",
+                    sockets: [],
+                })),
+            } as any,
             highestGSPort as any
         );
 
@@ -79,7 +92,20 @@ describe("GearScoreResolver", () => {
                 })),
                 save: jest.fn(),
             } as any,
-            { getItem: jest.fn() } as any,
+            {
+                getItem: jest.fn(async () => ({
+                    itemLevel: 100,
+                    quality: {
+                        type: "EPIC",
+                        name: "Epic",
+                    },
+                    icon: "icon.jpg",
+                    displayId: 1,
+                    id: 1,
+                    name: "Item",
+                    sockets: [],
+                })),
+            } as any,
             highestGSPort as any
         );
 
@@ -92,7 +118,8 @@ describe("GearScoreResolver", () => {
         expect(result.score).toBe(200);
         expect(highestGSPort.getHighestGS as jest.Mock).toHaveBeenCalledWith(
             " Mage ",
-            " Living-Flame "
+            " Living-Flame ",
+            undefined
         );
         expect(highestGSPort.saveHighestGS).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -104,6 +131,50 @@ describe("GearScoreResolver", () => {
                     isFullEnchanted: true,
                 }),
             })
+        );
+    });
+
+    it("passes force refresh to the highest GS lookup", async () => {
+        const highestGSPort = {
+            getHighestGS: jest.fn(async () => null),
+            saveHighestGS: jest.fn(async (gs: unknown) => gs),
+        };
+        const resolver = new GearScoreResolver(
+            {
+                getByHash: jest.fn(async () => ({
+                    score: 200,
+                    color: "uncommon" as const,
+                })),
+                save: jest.fn(),
+            } as any,
+            {
+                getItem: jest.fn(async () => ({
+                    itemLevel: 100,
+                    quality: {
+                        type: "EPIC",
+                        name: "Epic",
+                    },
+                    icon: "icon.jpg",
+                    displayId: 1,
+                    id: 1,
+                    name: "Item",
+                    sockets: [],
+                })),
+            } as any,
+            highestGSPort as any
+        );
+
+        await resolver.resolve({
+            characterName: "Mage",
+            realmSlug: "Living-Flame",
+            equippedItems: enchantedEquipment,
+            forceRefresh: true,
+        });
+
+        expect(highestGSPort.getHighestGS as jest.Mock).toHaveBeenCalledWith(
+            "Mage",
+            "Living-Flame",
+            true
         );
     });
 });

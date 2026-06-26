@@ -8,9 +8,8 @@ import { UserContextService } from "@domain/services/user-context-service";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 import WowAccountService from "@external/wow-account-service";
 import { WowCharacterService } from "@external/wow-character-service";
-import { RedisConfig } from "@infrastructure/config/redis.config";
 import { getEnvironment } from "@infrastructure/environment";
-import { RedisStore } from "@infrastructure/redis/redis-store";
+import { RedisStoreFactory } from "@infrastructure/redis/redis-store-factory";
 import { AuthRepository } from "@infrastructure/repositories/auth-repository";
 import { BannedRepository } from "@infrastructure/repositories/banned-repository";
 import { MemberRepository } from "@infrastructure/repositories/member-repository";
@@ -42,8 +41,7 @@ authContainer.singleton<DatabaseClient>("DatabaseClient", () =>
 );
 
 authContainer.singleton<StorePort>("RedisStore", () => {
-    const redisConfig = new RedisConfig();
-    return new RedisStore(redisConfig);
+    return RedisStoreFactory.getInstance();
 });
 
 authContainer.singleton<BlizzardOauthService>("BlizzardOauthService", () => {

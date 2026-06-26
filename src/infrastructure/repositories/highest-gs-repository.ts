@@ -1,4 +1,5 @@
 import type { DatabaseClient } from "@database/database-client-factory";
+import type { StorePort } from "src/application/ports/store/store.port";
 import type {
     HighestGS,
     HighestGSPort,
@@ -12,23 +13,29 @@ type HighestGSRow = {
     details: HighestGS["details"];
 };
 
-const cacheDurationMs = 1000 * 60 * 60; // 1 hour
-const cache = new Map<string, { data: HighestGS; timestamp: number }>();
+const CACHE_TTL_SECONDS = 5 * 60;
 export class HighestGSRepository implements HighestGSPort {
-    constructor(private readonly databaseClient: DatabaseClient) {}
+    constructor(
+        private readonly databaseClient: DatabaseClient,
+        private readonly store?: StorePort
+    ) {}
 
     async getHighestGS(
         characterName: string,
         realmSlug: string,
         forceRefresh?: boolean
     ): Promise<HighestGS | null> {
-        const cacheKey = `${characterName}:${realmSlug}`;
-        if (!forceRefresh && cache.has(cacheKey)) {
-            const cached = cache.get(cacheKey)!;
-            if (Date.now() - cached.timestamp < cacheDurationMs) {
-                return cached.data;
-            } else {
-                cache.delete(cacheKey);
+        const normalizedCharacterName = this.normalize(characterName);
+        const normalizedRealmSlug = this.normalize(realmSlug);
+        const cacheKey = this.getCacheKey(
+            normalizedCharacterName,
+            normalizedRealmSlug
+        );
+
+        if (!forceRefresh) {
+            const cached = await this.getFromCache(cacheKey);
+            if (cached) {
+                return cached;
             }
         }
 
@@ -37,16 +44,9 @@ export class HighestGSRepository implements HighestGSPort {
             .select(
                 "character_name, realm_slug:character_realm, created_at, updated_at, details"
             )
-            .eq("character_name", this.normalize(characterName))
-            .eq("character_realm", this.normalize(realmSlug))
+            .eq("character_name", normalizedCharacterName)
+            .eq("character_realm", normalizedRealmSlug)
             .maybeSingle();
-
-        if (data) {
-            cache.set(cacheKey, {
-                data: this.toHighestGS(data as HighestGSRow),
-                timestamp: Date.now(),
-            });
-        }
 
         if (error) {
             throw new Error(
@@ -58,7 +58,10 @@ export class HighestGSRepository implements HighestGSPort {
             return null;
         }
 
-        return this.toHighestGS(data as HighestGSRow);
+        const highestGS = this.toHighestGS(data as HighestGSRow);
+        await this.setCache(cacheKey, highestGS);
+
+        return highestGS;
     }
 
     async saveHighestGS(gs: HighestGS): Promise<HighestGS> {
@@ -92,7 +95,41 @@ export class HighestGSRepository implements HighestGSPort {
             );
         }
 
-        return this.toHighestGS(data as HighestGSRow);
+        const highestGS = this.toHighestGS(data as HighestGSRow);
+        await this.setCache(
+            this.getCacheKey(characterName, realmSlug),
+            highestGS
+        );
+
+        return highestGS;
+    }
+
+    private async getFromCache(cacheKey: string): Promise<HighestGS | null> {
+        if (!this.store) {
+            return null;
+        }
+
+        try {
+            const cached = await this.store.get<HighestGS>(cacheKey);
+            return cached ? this.toHighestGSFromCache(cached) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async setCache(
+        cacheKey: string,
+        highestGS: HighestGS
+    ): Promise<void> {
+        if (!this.store) {
+            return;
+        }
+
+        try {
+            await this.store.set(cacheKey, highestGS, CACHE_TTL_SECONDS);
+        } catch {
+            return;
+        }
     }
 
     private toHighestGS(row: HighestGSRow): HighestGS {
@@ -103,6 +140,18 @@ export class HighestGSRepository implements HighestGSPort {
             updatedAt: new Date(row.updated_at),
             details: row.details,
         };
+    }
+
+    private toHighestGSFromCache(highestGS: HighestGS): HighestGS {
+        return {
+            ...highestGS,
+            createdAt: new Date(highestGS.createdAt),
+            updatedAt: new Date(highestGS.updatedAt),
+        };
+    }
+
+    private getCacheKey(characterName: string, realmSlug: string): string {
+        return `highest-gs:${realmSlug}:${characterName}`;
     }
 
     private normalize(value: string): string {

@@ -15,6 +15,7 @@ import {
 } from "@use-cases/get-wow-item-details-usecase";
 import { Hono } from "hono";
 import { BlizzardTokenRepository } from "src/infrastructure/repositories/blizzard-token-repository";
+import { RedisStoreFactory } from "@infrastructure/redis/redis-store-factory";
 
 const wowItemRouter = new Hono();
 
@@ -62,7 +63,12 @@ wowItemRouter.get(
 
             const forceRefresh = normalizeForceFlag(query.force);
             const databaseClient = DatabaseClientFactory.getInstance();
-            const itemService = new ItemService(databaseClient);
+            const store = RedisStoreFactory.getInstance();
+            const itemService = new ItemService(
+                databaseClient,
+                undefined,
+                store
+            );
             const tokenRepository = new BlizzardTokenRepository(
                 databaseClient,
                 new BlizzardOauthService()

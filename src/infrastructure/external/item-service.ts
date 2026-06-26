@@ -1,56 +1,16 @@
 import type {
     IItemService,
     ItemDetails,
-} from "@repositories/gearscore/i-item-service.ts";
-import type { DatabaseClient } from "../database/database-client-factory.ts";
-import { createLogger } from "@infrastructure/logging/index.ts";
+} from "@repositories/gearscore/i-item-service";
+import type { DatabaseClient } from "../database/database-client-factory";
+import { createLogger } from "@infrastructure/logging";
+import type { StorePort } from "src/application/ports/store/store.port";
 
-type CachedWowItem = {
-    expiresAt: number;
-    data: ItemDetails;
-};
-
-const itemCache: Map<number, CachedWowItem> = new Map();
-const MAX_CACHE_ITEMS = 5000; // maximum number of items to keep in cache
-
-const CACHE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
 export class ItemService implements IItemService {
-    private readonly isCacheValid = (cachedItem: CachedWowItem): boolean => {
-        return cachedItem.expiresAt > Date.now();
-    };
-
-    private readonly getFromCache = (itemId: number): ItemDetails | null => {
-        const cachedItem = itemCache.get(itemId);
-        if (cachedItem && this.isCacheValid(cachedItem)) {
-            itemCache.delete(itemId);
-            this.setCache(itemId, cachedItem.data); // renew expiration on access
-            return cachedItem.data;
-        }
-
-        itemCache.delete(itemId); // remove stale cache entry if expired
-        return null;
-    };
-
-    private readonly setCache = (
-        itemId: number | string,
-        itemDetails: ItemDetails
-    ): void => {
-        if (itemCache.size >= MAX_CACHE_ITEMS) {
-            // Remove the oldest item from the cache
-            const oldestKey = itemCache.keys().next().value;
-            if (oldestKey !== undefined) {
-                itemCache.delete(oldestKey);
-            }
-        }
-        itemCache.set(parseInt(itemId.toString()), {
-            expiresAt: Date.now() + CACHE_DURATION_MS,
-            data: itemDetails,
-        });
-    };
-
     constructor(
         private readonly supabase: DatabaseClient,
-        private readonly logger = createLogger("ItemService")
+        private readonly logger = createLogger("ItemService"),
+        private readonly store?: StorePort
     ) {}
 
     async getItem(
@@ -60,11 +20,11 @@ export class ItemService implements IItemService {
         if (forceRefresh) {
             this.logger.info(`Force refreshing item: '${itemId}'`);
             const newItem = await this.fetchNewItem(itemId);
-            this.setCache(itemId, newItem);
+            await this.setCache(itemId, newItem);
             return newItem;
         }
 
-        const cachedItem = this.getFromCache(itemId);
+        const cachedItem = await this.getFromCache(itemId);
         if (cachedItem) {
             return cachedItem;
         }
@@ -78,7 +38,7 @@ export class ItemService implements IItemService {
             ) &&
             dbCached.details.id
         ) {
-            this.setCache(itemId, dbCached.details);
+            await this.setCache(itemId, dbCached.details);
             this.logger.info(`Database cache hit for item: '${itemId}'`);
             return dbCached.details;
         }
@@ -87,8 +47,58 @@ export class ItemService implements IItemService {
         this.logger.info(
             `Fetched new data for item: '${itemId}' from WoWHead and updating cache/database`
         );
-        this.setCache(itemId, newItem);
+        await this.setCache(itemId, newItem);
         return newItem;
+    }
+
+    private async getFromCache(itemId: number): Promise<ItemDetails | null> {
+        if (!this.store) {
+            return null;
+        }
+
+        try {
+            const cachedItem = await this.store.get<ItemDetails>(
+                this.getCacheKey(itemId)
+            );
+            if (!cachedItem) {
+                return null;
+            }
+
+            await this.setCache(itemId, cachedItem);
+            return cachedItem;
+        } catch (error) {
+            this.logger.warn(
+                `Redis item cache read failed for item '${itemId}'`,
+                {
+                    error,
+                }
+            );
+            return null;
+        }
+    }
+
+    private async setCache(
+        itemId: number | string,
+        itemDetails: ItemDetails
+    ): Promise<void> {
+        if (!this.store) {
+            return;
+        }
+
+        try {
+            await this.store.set(this.getCacheKey(itemId), itemDetails);
+        } catch (error) {
+            this.logger.warn(
+                `Redis item cache write failed for item '${itemId}'`,
+                {
+                    error,
+                }
+            );
+        }
+    }
+
+    private getCacheKey(itemId: number | string): string {
+        return `wow:item:${parseInt(itemId.toString())}`;
     }
 
     private async getItemFromDatabase(

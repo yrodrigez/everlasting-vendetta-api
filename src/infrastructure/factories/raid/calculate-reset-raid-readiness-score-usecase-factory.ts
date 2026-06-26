@@ -13,18 +13,23 @@ import { RaidReadinessScoreCalculatorService } from "@infrastructure/services/ra
 import { ItemService } from "@external/item-service";
 import { GearScoreResolver } from "../../../application/services/gear-score/gear-score-resolver";
 import { CalculateResetRaidReadinessScoreUseCase } from "@use-cases/calculate-reset-raid-readiness-score.usecase";
+import { RedisStoreFactory } from "@infrastructure/redis/redis-store-factory";
 
 export class CalculateResetRaidReadinessScoreUseCaseFactory {
     static make(): CalculateResetRaidReadinessScoreUseCase {
         const databaseClient = DatabaseClientFactory.getInstance();
+        const store = RedisStoreFactory.getInstance();
         const blizzardOauthService = new BlizzardOauthService();
         const tokenRepository = new BlizzardTokenRepository(
             databaseClient,
             blizzardOauthService
         );
         const cacheRepository = new GearScoreCacheRepository(databaseClient);
-        const highestGSRepository = new HighestGSRepository(databaseClient);
-        const itemService = new ItemService(databaseClient);
+        const highestGSRepository = new HighestGSRepository(
+            databaseClient,
+            store
+        );
+        const itemService = new ItemService(databaseClient, undefined, store);
 
         const gearScoreResolver = new GearScoreResolver(
             cacheRepository,

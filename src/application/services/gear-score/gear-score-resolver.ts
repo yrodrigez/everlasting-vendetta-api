@@ -88,7 +88,8 @@ export class GearScoreResolver {
 
         const highestGS = await this.highestGSPort.getHighestGS(
             input.characterName,
-            input.realmSlug
+            input.realmSlug,
+            input.forceRefresh
         );
 
         if (
