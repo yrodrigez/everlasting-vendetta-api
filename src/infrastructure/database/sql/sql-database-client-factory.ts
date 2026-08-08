@@ -2,8 +2,6 @@ import { getEnvironment } from "@infrastructure/environment";
 import { createLogger } from "@infrastructure/logging/logger";
 import { Pool } from "pg";
 
-const { postgres } = getEnvironment();
-
 const cleanEnvVar = (str?: string) =>
     (str ?? "").replace(/^"+|"+$/g, "").trim();
 
@@ -12,14 +10,15 @@ export class SQLDatabaseClientFactory {
     private logger = createLogger("SQLDatabaseClientFactory");
     private readonly pool: Pool;
 
-    private constructor(
-        private readonly user: string = cleanEnvVar(postgres.user),
-        private readonly password: string = cleanEnvVar(postgres.password),
-        private readonly host: string = cleanEnvVar(postgres.host),
-        private readonly port: number = postgres.port,
-        private readonly database: string = cleanEnvVar(postgres.database),
-        private readonly ssl: boolean = postgres.ssl
-    ) {
+    private constructor() {
+        const { postgres } = getEnvironment();
+        const user = cleanEnvVar(postgres.user);
+        const password = cleanEnvVar(postgres.password);
+        const host = cleanEnvVar(postgres.host);
+        const port = postgres.port;
+        const database = cleanEnvVar(postgres.database);
+        const ssl = postgres.ssl;
+
         this.logger.info(
             "Initializing SQL Database Client Factory with config:",
             {
@@ -38,12 +37,14 @@ export class SQLDatabaseClientFactory {
             throw new Error("Database configuration is incomplete");
         }
         this.pool = new Pool({
-            user: this.user,
-            password: this.password,
-            host: this.host,
-            port: this.port,
-            database: this.database,
-            ssl: this.ssl ? { rejectUnauthorized: false } : false,
+            user,
+            password,
+            host,
+            port,
+            database,
+            ssl: ssl ? { rejectUnauthorized: false } : false,
+            max: 8,
+            connectionTimeoutMillis: 30000,
         });
     }
 
@@ -56,6 +57,20 @@ export class SQLDatabaseClientFactory {
 
     async close() {
         await this.pool.end();
+    }
+
+    async healthCheck(): Promise<boolean> {
+        let client;
+        try {
+            client = await this.pool.connect();
+            await client.query("SELECT 1");
+            return true;
+        } catch (error) {
+            this.logger.error("Health check failed", error);
+            return false;
+        } finally {
+            client?.release();
+        }
     }
 
     async query<T>(text: string, params?: unknown[]): Promise<T[]> {

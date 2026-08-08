@@ -11,6 +11,22 @@ import { StorePort } from "src/application/ports/store/store.port";
 import { SessionId } from "src/application/value-objects/session-id.vo";
 
 const logger = createLogger("LoginUseCase");
+
+type LoginResult = StoredSession & {
+    userId: string;
+};
+
+type SelectedCharacterMetadata = {
+    realm?: {
+        slug?: string | null;
+    } | null;
+    character?: {
+        realm?: {
+            slug?: string | null;
+        } | null;
+    } | null;
+};
+
 export class LoginUseCase {
     constructor(
         private readonly authenticateWithBattleNetUseCase: AuthenticateWithBattleNetUseCase,
@@ -18,9 +34,7 @@ export class LoginUseCase {
         private readonly storePort: StorePort
     ) {}
 
-    private async orchestrateLogin(
-        input: SessionInput
-    ): Promise<StoredSession> {
+    private async orchestrateLogin(input: SessionInput): Promise<LoginResult> {
         const {
             access_token,
             provider,
@@ -60,9 +74,18 @@ export class LoginUseCase {
 
     async execute(input: SessionInput): Promise<SessionOutput> {
         const loginResult = await this.orchestrateLogin(input);
+        await this.ensureSelectedCharacterHasRealm(loginResult.userId);
+
+        const session: StoredSession = {
+            refreshToken: loginResult.refreshToken,
+            accessToken: loginResult.accessToken,
+            refreshTokenExpiresAt: loginResult.refreshTokenExpiresAt,
+            accessTokenExpiresAt: loginResult.accessTokenExpiresAt,
+            provider: loginResult.provider,
+        };
         const sessionId = SessionId.generate();
         const ttl = Math.floor(
-            (loginResult.refreshTokenExpiresAt * 1000 - Date.now()) / 1000
+            (session.refreshTokenExpiresAt * 1000 - Date.now()) / 1000
         );
         if (ttl <= 0) {
             throw new AuthError(
@@ -74,10 +97,44 @@ export class LoginUseCase {
 
         logger.info(`Storing session with TTL: ${ttl} seconds`);
         const keyId = `session:${sessionId.getValue()}`;
-        await this.storePort.set<StoredSession>(keyId, loginResult, ttl);
+        await this.storePort.set<StoredSession>(keyId, session, ttl);
         return {
-            ...loginResult,
+            ...session,
             sessionId: sessionId.getValue(),
         };
+    }
+
+    private async ensureSelectedCharacterHasRealm(
+        userId: string
+    ): Promise<void> {
+        const key = `selected_character:${userId}`;
+        const selectedCharacter =
+            await this.storePort.get<SelectedCharacterMetadata>(key);
+
+        if (!selectedCharacter) {
+            return;
+        }
+
+        if (this.hasRealmSlug(selectedCharacter)) {
+            return;
+        }
+
+        await this.storePort.remove(key);
+        throw new AuthError(
+            "Selected character is missing realm",
+            "SELECTED_CHARACTER_MISSING_REALM",
+            400
+        );
+    }
+
+    private hasRealmSlug(
+        selectedCharacter: SelectedCharacterMetadata
+    ): boolean {
+        const realmSlug =
+            selectedCharacter.realm?.slug ??
+            selectedCharacter.character?.realm?.slug ??
+            "";
+
+        return realmSlug.trim().length > 0;
     }
 }

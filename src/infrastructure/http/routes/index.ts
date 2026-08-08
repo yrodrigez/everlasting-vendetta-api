@@ -1,36 +1,37 @@
 import { Hono } from "hono";
 import wowRoutes from "./wow-routes";
-import authRoutes from "./auth";
+import { buildAuthRoutes } from "./auth";
 import { gearscoreRoutes } from "./gearscore-route";
 import realmsRoutes from "./realms";
-import characterRoutes from "./characters";
+import { buildCharacterRoutes } from "./characters";
 import { raidRoutes } from "./raid";
 import analyticsRoutes from "./analytics";
 import discordRoutes from "./discord";
 import resetRoutes from "./reset";
-import evxRoutes from "./evx";
+import { buildEvxRoutes } from "./evx";
+import type { Container } from "@infrastructure/di/container";
 
-const routes = new Hono();
+export function buildRoutes(container: Container): Hono {
+    const routes = new Hono();
 
-// Health check
-routes.get("/health", (c) => {
-    return c.json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
+    routes.get("/health", (c) => {
+        return c.json({
+            status: "ok",
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+        });
     });
-});
 
-// Mount route modules
-routes.route("/wow", wowRoutes);
-routes.route("/auth", authRoutes);
-routes.route("/gearscore", gearscoreRoutes);
-routes.route("/realms", realmsRoutes);
-routes.route("/auth/characters", characterRoutes);
-routes.route("/raids", raidRoutes);
-routes.route("/reset", resetRoutes);
-routes.route("/analytics", analyticsRoutes);
-routes.route("/discord", discordRoutes);
-routes.route("/evx", evxRoutes);
+    routes.route("/wow", wowRoutes);
+    routes.route("/auth", buildAuthRoutes(container));
+    routes.route("/gearscore", gearscoreRoutes);
+    routes.route("/realms", realmsRoutes);
+    routes.route("/auth/characters", buildCharacterRoutes(container));
+    routes.route("/raids", raidRoutes);
+    routes.route("/reset", resetRoutes);
+    routes.route("/analytics", analyticsRoutes);
+    routes.route("/discord", discordRoutes);
+    routes.route("/evx", buildEvxRoutes(container));
 
-export { routes };
+    return routes;
+}

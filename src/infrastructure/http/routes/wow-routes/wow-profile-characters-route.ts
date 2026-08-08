@@ -9,6 +9,7 @@ import { WowCharacterService } from "@external/wow-character-service";
 import { GetRealmCharactersUseCase } from "@use-cases/get-realm-characters-usecase";
 import GetFullCharactersUseCase from "@use-cases/get-full-characters-usecase";
 import { DatabaseClientFactory } from "@database/database-client-factory";
+import { SQLDatabaseClientFactory } from "@database/sql/sql-database-client-factory";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
 import { WowAccountRepository } from "src/infrastructure/repositories/wow-account-repository";
 import { MemberRepository } from "src/infrastructure/repositories/member-repository";
@@ -29,11 +30,15 @@ wowRoutes.post(
         },
         async ({ input: { access_token, realmSlug } }) => {
             const databaseClient = DatabaseClientFactory.getInstance();
+            const sqlDatabaseClient = SQLDatabaseClientFactory.getInstance();
             const blizzardOauthService = new BlizzardOauthService();
             const wowAccountRepository = new WowAccountRepository(
                 databaseClient
             );
-            const memberRepository = new MemberRepository(databaseClient);
+            const memberRepository = new MemberRepository(
+                databaseClient,
+                sqlDatabaseClient
+            );
 
             const saveWowAccountUseCase = new SaveWowAccountUseCase(
                 wowAccountRepository,

@@ -1,8 +1,6 @@
 import { LinkCharacterController } from "@http/controllers/wow/link-character-controller";
-import { createRoute, RouteContext } from "@http/hono-adapter";
-import { authMiddleware } from "@http/middleware/auth.middleware";
-import { createLogger } from "@infrastructure/logging";
-import { Hono } from "hono";
+import { createRoute } from "@http/hono-adapter";
+import { Hono, type MiddlewareHandler } from "hono";
 import { z } from "zod/v3";
 
 const linkSchema = z.object({
@@ -12,22 +10,35 @@ const linkSchema = z.object({
 
 type LinkInput = z.infer<typeof linkSchema>;
 
-const characterLinkRoute = new Hono();
+export function buildCharacterLinkRoute(
+    controller: LinkCharacterController,
+    authMiddleware: MiddlewareHandler
+) {
+    const characterLinkRoute = new Hono();
 
-characterLinkRoute.post(
-    "/",
-    authMiddleware,
-    createRoute<LinkInput>(
-        {
-            functionName: "link-character",
-            inputSchema: linkSchema,
-        },
-        async (routeContext: RouteContext<LinkInput>) => {
-            const controller = new LinkCharacterController();
-            const characters = await controller.handle(routeContext);
-            return { characters };
-        }
-    )
-);
+    characterLinkRoute.post(
+        "/",
+        authMiddleware,
+        createRoute<LinkInput>(
+            {
+                functionName: "link-character",
+                inputSchema: linkSchema,
+            },
+            async ({ c, input }) => {
+                const user = c.get("user");
+                if (!user) {
+                    throw new Error("User not authenticated");
+                }
 
-export { characterLinkRoute };
+                const characters = await controller.handle({
+                    userId: user.userId,
+                    characterName: input.characterName,
+                    realmSlug: input.realmSlug,
+                });
+                return { characters };
+            }
+        )
+    );
+
+    return characterLinkRoute;
+}

@@ -2,42 +2,35 @@
 import { createRoute } from "@http/hono-adapter";
 import { LoginInput, loginSchema } from "@http/validators/schemas/auth-schema";
 import { Hono } from "hono";
-import { authContainer } from "@infrastructure/di/auth/auth.container";
-import { LoginUseCase } from "@use-cases/login/login.usecase";
 
-const loginRoute = new Hono();
+import { LoginController } from "@http/controllers/auth/login.controller";
 
-loginRoute.post(
-    createRoute<LoginInput>(
-        {
-            functionName: "auth-login",
-            inputSchema: loginSchema,
-        },
-        async ({
-            input: { access_token, provider, expires_at, refresh_token },
-            ipAddress,
-            userAgent,
-        }) => {
-            const loginUseCase =
-                authContainer.resolve<LoginUseCase>("LoginUseCase");
+export function buildLoginRoute(controller: LoginController) {
+    const loginRoute = new Hono();
 
-            const result = await loginUseCase.execute({
-                access_token,
-                provider,
-                expires_at,
-                refresh_token,
-                ipAddress: ipAddress ?? undefined,
-                userAgent: userAgent ?? undefined,
-            });
+    loginRoute.post(
+        createRoute<LoginInput>(
+            {
+                functionName: "auth-login",
+                inputSchema: loginSchema,
+            },
+            async ({
+                input: { access_token, provider, expires_at, refresh_token },
+                ipAddress,
+                userAgent,
+            }) => {
+                const result = await controller.handle({
+                    access_token,
+                    provider,
+                    expires_at,
+                    refresh_token,
+                    ipAddress: ipAddress ?? undefined,
+                    userAgent: userAgent ?? undefined,
+                });
 
-            return {
-                sessionId: result.sessionId,
-                accessToken: result.accessToken,
-                expiresAt: result.refreshTokenExpiresAt,
-                accessTokenExpiresAt: result.accessTokenExpiresAt,
-            };
-        }
-    )
-);
-
-export { loginRoute };
+                return result;
+            }
+        )
+    );
+    return loginRoute;
+}

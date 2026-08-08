@@ -24,6 +24,14 @@ export interface IMemberRepository {
         characterNames: string[]
     ): Promise<Member[]>;
 
+    setSelectedCharacterForUser({
+        userId,
+        characterId,
+    }: {
+        userId: string;
+        characterId: number;
+    }): Promise<void>;
+
     unlinkAllFromUserId(userId: string): Promise<Member[]>;
     isUserGuildMember(userId: string, realmSlugs: string[]): Promise<boolean>;
     findSelectedByUserId(userId: string): Promise<Member | null>;

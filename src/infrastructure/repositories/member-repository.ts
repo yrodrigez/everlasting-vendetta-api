@@ -1,12 +1,46 @@
-import { IMemberRepository } from "../../domain/repositories/i-member-repository.ts";
-import { Member } from "../../domain/entities/member.ts";
-import { DatabaseClient } from "../database/database-client-factory.ts";
-import { MemberRepositoryError } from "../../domain/errors/member-repository-error.ts";
+import type { IMemberRepository } from "@domain/repositories/i-member-repository.ts";
+import { Member } from "@domain/entities/member.ts";
+import type { DatabaseClient } from "@infrastructure/database/database-client-factory.ts";
+import { MemberRepositoryError } from "@domain/errors/member-repository-error.ts";
+import type { SQLDatabaseClientFactory } from "@infrastructure/database/sql/sql-database-client-factory.ts";
 
 const MEMBER_TABLE = "ev_member";
 
 export class MemberRepository implements IMemberRepository {
-    constructor(private readonly database: DatabaseClient) {}
+    constructor(
+        private readonly database: DatabaseClient,
+        private readonly postgresClient: SQLDatabaseClientFactory
+    ) {}
+
+    async setSelectedCharacterForUser({
+        userId,
+        characterId,
+    }: {
+        userId: string;
+        characterId: number;
+    }): Promise<void> {
+        const query = /* sql */ `
+            UPDATE ${MEMBER_TABLE} AS member
+            SET is_selected = (member.id = $1)
+            WHERE member.user_id = $2
+            AND EXISTS (
+                SELECT 1
+                FROM ${MEMBER_TABLE} AS target
+                WHERE target.id = $1
+                    AND target.user_id = $2
+            )
+            RETURNING id;
+        `;
+
+        try {
+            await this.postgresClient.query(query, [characterId, userId]);
+        } catch (error: any) {
+            throw new MemberRepositoryError(
+                `Error setting selected character for user: ${error.message || "Unknown error"}`
+            );
+        }
+    }
+
     async isUserGuildMember(
         userId: string,
         realmSlugs: string[]

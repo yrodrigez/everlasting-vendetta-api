@@ -1,11 +1,21 @@
-import { DatabaseClient } from "@database/database-client-factory";
+import { AuthError } from "@errors/auth-error";
 import { Logger } from "@infrastructure/logging";
 import { IMemberRepository } from "@repositories/i-member-repository";
 import { StorePort } from "src/application/ports/store/store.port";
 
+type SelectedCharacterMetadata = {
+    realm?: {
+        slug?: string | null;
+    } | null;
+    character?: {
+        realm?: {
+            slug?: string | null;
+        } | null;
+    } | null;
+};
+
 export class SetSelectedCharacterUseCase {
     constructor(
-        private readonly databaseClient: DatabaseClient,
         private readonly memberRepository: IMemberRepository,
         private readonly logger: Logger,
         private readonly store: StorePort
@@ -18,6 +28,8 @@ export class SetSelectedCharacterUseCase {
         this.logger.info(
             `Setting selected character for user ${userId} to character ${characterId} with metadata ${JSON.stringify(metadata)}`
         );
+
+        void this.verifyCharacterRealm(metadata);
 
         // Verify that the character belongs to the user
         const members = await this.memberRepository.findAllByUserId(userId);
@@ -38,6 +50,7 @@ export class SetSelectedCharacterUseCase {
         const alreadySelectedCharacter = members.find(
             (member) => member.is_selected && member.id === characterId
         );
+
         if (alreadySelectedCharacter) {
             await this.store.set(`selected_character:${userId}`, metadata, 0);
             this.logger.info(
@@ -46,37 +59,30 @@ export class SetSelectedCharacterUseCase {
             return;
         }
 
-        const { error: deselectError } = await this.databaseClient
-            .from("ev_member")
-            .update({ is_selected: false })
-            .eq("user_id", userId)
-            .eq("is_selected", true);
-
-        if (deselectError) {
-            this.logger.error(
-                `Failed to deselect current character for user ${userId}: ${deselectError.message}`
-            );
-            throw new Error("Failed to update selected character");
-        }
-
-        // Update the member record to set the selected character
-        const { error } = await this.databaseClient
-            .from("ev_member")
-            .update({ is_selected: true })
-            .eq("user_id", userId)
-            .eq("id", characterId);
-
-        if (error) {
-            this.logger.error(
-                `Failed to set selected character for user ${userId}: ${error.message}`
-            );
-            throw new Error("Failed to set selected character");
-        }
+        await this.memberRepository.setSelectedCharacterForUser({
+            userId,
+            characterId,
+        });
 
         await this.store.set(`selected_character:${userId}`, metadata, 0);
 
         this.logger.info(
             `Successfully set selected character for user ${userId} to character ${characterId} with metadata ${JSON.stringify(metadata)}`
+        );
+    }
+
+    private verifyCharacterRealm(metadata: SelectedCharacterMetadata): void {
+        const realmSlug =
+            metadata.realm?.slug ?? metadata.character?.realm?.slug ?? "";
+
+        if (realmSlug.trim().length > 0) {
+            return;
+        }
+
+        throw new AuthError(
+            "Selected character is missing realm",
+            "SELECTED_CHARACTER_MISSING_REALM",
+            400
         );
     }
 }

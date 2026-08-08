@@ -186,6 +186,7 @@ export class AuthenticateWithBattleNetUseCase {
         );
 
         return {
+            userId,
             refreshToken: tokenPair.refreshToken,
             accessToken: tokenPair.accessToken,
             refreshTokenExpiresAt: tokenPair.refreshTokenExpiry,

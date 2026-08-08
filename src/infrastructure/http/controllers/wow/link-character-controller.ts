@@ -1,22 +1,20 @@
-import { RouteContext } from "@http/hono-adapter";
-import { LinkCharacterUseCaseFactory } from "@infrastructure/factories/wow/link-character-usecase-factory";
+import { LinkCharacterToUserUseCase } from "@use-cases/link-character-to-user";
 
 export class LinkCharacterController {
+    constructor(
+        private readonly linkCharacterToUserUseCase: LinkCharacterToUserUseCase
+    ) {}
+
     async handle({
-        input: { characterName, realmSlug },
-        c: context,
-    }: RouteContext<{
+        userId,
+        characterName,
+        realmSlug,
+    }: {
+        userId: string;
         characterName: string;
         realmSlug: string;
-    }>) {
-        const user = context.get("user");
-        const userId = user?.userId;
-        if (!userId) {
-            throw new Error("User not authenticated");
-        }
-
-        const usecase = await LinkCharacterUseCaseFactory.make();
-        return usecase.execute({
+    }) {
+        return this.linkCharacterToUserUseCase.execute({
             userId,
             characterName,
             realmSlug,

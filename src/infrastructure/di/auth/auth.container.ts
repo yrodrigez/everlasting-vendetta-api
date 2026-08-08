@@ -1,15 +1,11 @@
-import {
-    DatabaseClient,
-    DatabaseClientFactory,
-} from "@database/database-client-factory";
-import { IEventTrackingService } from "@domain/services/i-event-tracking-service";
-import { ITokenService } from "@domain/services/i-token-service";
+import type { IEventTrackingService } from "@domain/services/i-event-tracking-service";
+import type { ITokenService } from "@domain/services/i-token-service";
 import { UserContextService } from "@domain/services/user-context-service";
 import { BlizzardOauthService } from "@external/blizzard-oauth-service";
+import { DiscordApi } from "@external/discord-api";
 import WowAccountService from "@external/wow-account-service";
 import { WowCharacterService } from "@external/wow-character-service";
 import { getEnvironment } from "@infrastructure/environment";
-import { RedisStoreFactory } from "@infrastructure/redis/redis-store-factory";
 import { AuthRepository } from "@infrastructure/repositories/auth-repository";
 import { BannedRepository } from "@infrastructure/repositories/banned-repository";
 import { MemberRepository } from "@infrastructure/repositories/member-repository";
@@ -19,186 +15,232 @@ import { RoleRepository } from "@infrastructure/repositories/role-repository";
 import { WowAccountRepository } from "@infrastructure/repositories/wow-account-repository";
 import { JWTTokenService } from "@infrastructure/security/jwt-token-service";
 import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
-import { IAuthRepository } from "@repositories/i-auth-repository";
-import { IBannedRepository } from "@repositories/i-banned-repository";
-import { IMemberRepository } from "@repositories/i-member-repository";
-import { IPermissionRepository } from "@repositories/i-permission-repository";
-import { IRealmsRepository } from "@repositories/i-realms-repository";
-import { IRoleRepository } from "@repositories/i-role-repository";
-import { IWowAccountRepository } from "@repositories/i-wow-account-repository";
+import type { IAuthRepository } from "@repositories/i-auth-repository";
+import type { IBannedRepository } from "@repositories/i-banned-repository";
+import type { IDiscordApiClient } from "@repositories/i-discord-api-client";
+import type { IMemberRepository } from "@repositories/i-member-repository";
+import type { IPermissionRepository } from "@repositories/i-permission-repository";
+import type { IRealmsRepository } from "@repositories/i-realms-repository";
+import type { IRoleRepository } from "@repositories/i-role-repository";
+import type { IWowAccountRepository } from "@repositories/i-wow-account-repository";
 import { AuthenticateWithBattleNetUseCase } from "@use-cases/auth-with-battlenet-usecase";
 import { AuthenticateWithDiscordUseCase } from "@use-cases/auth-with-discord-usecase";
+import { GetMyProfileUseCase } from "@use-cases/get-my-profile-usecase";
+import { GetUserSessionsUseCase } from "@use-cases/get-user-sessions-usecase";
+import { LinkOAuthAccountUseCase } from "@use-cases/link-oauth-account-usecase";
+import { GetSessionUseCase } from "@use-cases/login/get-session.usecase";
 import { LoginUseCase } from "@use-cases/login/login.usecase";
 import { RefreshSessionTokenUseCase } from "@use-cases/refresh-user-session-token";
-import { Container } from "../container";
-import { GetSessionUseCase } from "@use-cases/login/get-session.usecase";
-import { StorePort } from "src/application/ports/store/store.port";
+import { RevokeAllTokensUseCase } from "@use-cases/revoke-all-tokens-usecase";
+import { RevokeTokenUseCase } from "@use-cases/revoke-token-usecase";
+import { SyncBattlenetMembersToUserUsecase } from "@use-cases/sync-battlenet-members-to-user-usecase";
+import { SyncMembersToNewUserUseCase } from "@use-cases/sync-members-to-new-user-usecase";
+import { type Container, createToken } from "../container";
+import { DATABASE_TOKENS } from "../persistence/database.container";
 
-export const authContainer = new Container();
-
-authContainer.singleton<DatabaseClient>("DatabaseClient", () =>
-    DatabaseClientFactory.getInstance()
-);
-
-authContainer.singleton<StorePort>("RedisStore", () => {
-    return RedisStoreFactory.getInstance();
-});
-
-authContainer.singleton<BlizzardOauthService>("BlizzardOauthService", () => {
-    return new BlizzardOauthService();
-});
-
-authContainer.singleton<IAuthRepository>("AuthRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new AuthRepository(databaseClient);
-});
-
-authContainer.singleton<IMemberRepository>("MemberRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new MemberRepository(databaseClient);
-});
-
-authContainer.singleton<IRoleRepository>("RoleRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new RoleRepository(databaseClient);
-});
-
-authContainer.singleton<IPermissionRepository>("PermissionRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new PermissionRepository(databaseClient);
-});
-
-authContainer.singleton<ITokenService>("JwtTokenGenerator", () => {
-    const { jwtSecret, jwtKid, jwtRefreshSecret } = getEnvironment();
-    return new JWTTokenService(jwtSecret, jwtRefreshSecret, jwtKid);
-});
-
-authContainer.singleton<IBannedRepository>("BannedRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new BannedRepository(databaseClient);
-});
-
-authContainer.singleton<IWowAccountRepository>("AccountRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new WowAccountRepository(databaseClient);
-});
-
-authContainer.singleton<IRealmsRepository>("RealmsRepository", (c) => {
-    const databaseClient = c.resolve<DatabaseClient>("DatabaseClient");
-    return new RealmsRepository(databaseClient);
-});
-
-authContainer.singleton("UserContextService", (c) => {
-    const roleRepository = c.resolve<IRoleRepository>("RoleRepository");
-    const permissionsRepository = c.resolve<IPermissionRepository>(
+export const AUTH_TOKENS = {
+    AuthRepository: createToken<IAuthRepository>("AuthRepository"),
+    MemberRepository: createToken<IMemberRepository>("MemberRepository"),
+    RoleRepository: createToken<IRoleRepository>("RoleRepository"),
+    PermissionRepository: createToken<IPermissionRepository>(
         "PermissionRepository"
-    );
-    const authRepository = c.resolve<IAuthRepository>("AuthRepository");
-    const bansRepository = c.resolve<IBannedRepository>("BannedRepository");
-    const realmsRepository = c.resolve<IRealmsRepository>("RealmsRepository");
-    const memberRepository = c.resolve<IMemberRepository>("MemberRepository");
-    const userContextService = new UserContextService(
-        roleRepository,
-        permissionsRepository,
-        authRepository,
-        bansRepository,
-        realmsRepository,
-        memberRepository
-    );
-    return userContextService;
-});
-
-authContainer.singleton("AuthenticateWithBattleNetUseCase", (c) => {
-    const environment = getEnvironment();
-    const wowAccountService = new WowAccountService(
-        environment.profileNamespaces
-    );
-    const characterService = new WowCharacterService();
-    const blizzardOAuthService = c.resolve<BlizzardOauthService>(
+    ),
+    BannedRepository: createToken<IBannedRepository>("BannedRepository"),
+    RealmsRepository: createToken<IRealmsRepository>("RealmsRepository"),
+    WowAccountRepository: createToken<IWowAccountRepository>(
+        "WowAccountRepository"
+    ),
+    JwtTokenGenerator: createToken<ITokenService>("JwtTokenGenerator"),
+    EventTrackingService: createToken<IEventTrackingService>(
+        "EventTrackingService"
+    ),
+    BlizzardOauthService: createToken<BlizzardOauthService>(
         "BlizzardOauthService"
-    );
-    const authRepository = c.resolve<IAuthRepository>("AuthRepository");
-    const memberRepository = c.resolve<IMemberRepository>("MemberRepository");
-    const tokenService = c.resolve<ITokenService>("JwtTokenGenerator");
-    const userContextService =
-        c.resolve<UserContextService>("UserContextService");
-    const wowAccountRepository =
-        c.resolve<IWowAccountRepository>("AccountRepository");
-    const battlenetAuthUseCase = new AuthenticateWithBattleNetUseCase(
-        blizzardOAuthService,
-        authRepository,
-        wowAccountService,
-        characterService,
-        memberRepository,
-        tokenService,
-        userContextService,
-        wowAccountRepository,
-        environment.currentRealms.map((r) => ({ slug: r.slug }))
-    );
-    return battlenetAuthUseCase;
-});
-
-authContainer.singleton("AuthenticateWithDiscordUseCase", (c) => {
-    const authRepository = c.resolve<IAuthRepository>("AuthRepository");
-    const tokenService = c.resolve<ITokenService>("JwtTokenGenerator");
-    const userContextService =
-        c.resolve<UserContextService>("UserContextService");
-    const discordAuthUseCase = new AuthenticateWithDiscordUseCase(
-        authRepository,
-        tokenService,
-        userContextService
-    );
-    return discordAuthUseCase;
-});
-
-authContainer.singleton<LoginUseCase>("LoginUseCase", (c) => {
-    const authenticateWithBattleNetUseCase =
-        c.resolve<AuthenticateWithBattleNetUseCase>(
+    ),
+    DiscordApiClient: createToken<IDiscordApiClient>("DiscordApiClient"),
+    UserContextService: createToken<UserContextService>("UserContextService"),
+    SyncBattlenetMembersToUserUseCase:
+        createToken<SyncBattlenetMembersToUserUsecase>(
+            "SyncBattlenetMembersToUserUseCase"
+        ),
+    SyncMembersToNewUserUseCase: createToken<SyncMembersToNewUserUseCase>(
+        "SyncMembersToNewUserUseCase"
+    ),
+    AuthenticateWithBattleNetUseCase:
+        createToken<AuthenticateWithBattleNetUseCase>(
             "AuthenticateWithBattleNetUseCase"
-        );
-    const authenticateWithDiscordUseCase =
-        c.resolve<AuthenticateWithDiscordUseCase>(
-            "AuthenticateWithDiscordUseCase"
-        );
-    const store = c.resolve<StorePort>("RedisStore");
-
-    const loginUseCase = new LoginUseCase(
-        authenticateWithBattleNetUseCase,
-        authenticateWithDiscordUseCase,
-        store
-    );
-    return loginUseCase;
-});
-
-authContainer.singleton<IEventTrackingService>("WowAccountService", () => {
-    const eventTrackingService = new EventTrackingService();
-    return eventTrackingService;
-});
-
-authContainer.singleton<RefreshSessionTokenUseCase>(
-    "RefreshTokenUseCase",
-    (c) => {
-        const authRepository = c.resolve<IAuthRepository>("AuthRepository");
-        const tokenService = c.resolve<ITokenService>("JwtTokenGenerator");
-        const userContextService =
-            c.resolve<UserContextService>("UserContextService");
-        const eventTracker =
-            c.resolve<IEventTrackingService>("WowAccountService");
-        const usecase = new RefreshSessionTokenUseCase(
-            authRepository,
-            tokenService,
-            userContextService,
-            eventTracker
-        );
-        return usecase;
-    }
-);
-
-authContainer.singleton<GetSessionUseCase>("GetSessionUseCase", (c) => {
-    const refreshTokenUseCase = c.resolve<RefreshSessionTokenUseCase>(
+        ),
+    AuthenticateWithDiscordUseCase: createToken<AuthenticateWithDiscordUseCase>(
+        "AuthenticateWithDiscordUseCase"
+    ),
+    LinkOAuthAccountUseCase: createToken<LinkOAuthAccountUseCase>(
+        "LinkOAuthAccountUseCase"
+    ),
+    LoginUseCase: createToken<LoginUseCase>("LoginUseCase"),
+    RefreshTokenUseCase: createToken<RefreshSessionTokenUseCase>(
         "RefreshTokenUseCase"
-    );
-    const store = c.resolve<StorePort>("RedisStore");
+    ),
+    GetSessionUseCase: createToken<GetSessionUseCase>("GetSessionUseCase"),
+    GetMyProfileUseCase: createToken<GetMyProfileUseCase>(
+        "GetMyProfileUseCase"
+    ),
+    GetUserSessionsUseCase: createToken<GetUserSessionsUseCase>(
+        "GetUserSessionsUseCase"
+    ),
+    RevokeTokenUseCase: createToken<RevokeTokenUseCase>("RevokeTokenUseCase"),
+    RevokeAllTokensUseCase: createToken<RevokeAllTokensUseCase>(
+        "RevokeAllTokensUseCase"
+    ),
+} as const;
 
-    return new GetSessionUseCase(refreshTokenUseCase, store);
-});
+export function registerAuthDependencies(container: Container): void {
+    container.singleton(
+        AUTH_TOKENS.BlizzardOauthService,
+        () => new BlizzardOauthService()
+    );
+    container.singleton(AUTH_TOKENS.DiscordApiClient, () => new DiscordApi());
+
+    container.singleton(
+        AUTH_TOKENS.AuthRepository,
+        (c) => new AuthRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+    container.singleton(
+        AUTH_TOKENS.MemberRepository,
+        (c) =>
+            new MemberRepository(
+                c.resolve(DATABASE_TOKENS.SupabaseClient),
+                c.resolve(DATABASE_TOKENS.PostgresSQLClient)
+            )
+    );
+    container.singleton(
+        AUTH_TOKENS.RoleRepository,
+        (c) => new RoleRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+    container.singleton(
+        AUTH_TOKENS.PermissionRepository,
+        (c) =>
+            new PermissionRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+    container.singleton(
+        AUTH_TOKENS.BannedRepository,
+        (c) => new BannedRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+    container.singleton(
+        AUTH_TOKENS.WowAccountRepository,
+        (c) =>
+            new WowAccountRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+    container.singleton(
+        AUTH_TOKENS.RealmsRepository,
+        (c) => new RealmsRepository(c.resolve(DATABASE_TOKENS.SupabaseClient))
+    );
+
+    container.singleton(AUTH_TOKENS.JwtTokenGenerator, () => {
+        const { jwtSecret, jwtKid, jwtRefreshSecret } = getEnvironment();
+        return new JWTTokenService(jwtSecret, jwtRefreshSecret, jwtKid);
+    });
+    container.singleton(
+        AUTH_TOKENS.EventTrackingService,
+        () => new EventTrackingService()
+    );
+    container.singleton(AUTH_TOKENS.UserContextService, (c) => {
+        return new UserContextService(
+            c.resolve(AUTH_TOKENS.RoleRepository),
+            c.resolve(AUTH_TOKENS.PermissionRepository),
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            c.resolve(AUTH_TOKENS.BannedRepository),
+            c.resolve(AUTH_TOKENS.RealmsRepository),
+            c.resolve(AUTH_TOKENS.MemberRepository)
+        );
+    });
+
+    container.singleton(AUTH_TOKENS.SyncBattlenetMembersToUserUseCase, (c) => {
+        const environment = getEnvironment();
+        return new SyncBattlenetMembersToUserUsecase(
+            c.resolve(AUTH_TOKENS.BlizzardOauthService),
+            new WowAccountService(environment.profileNamespaces),
+            new WowCharacterService(),
+            c.resolve(AUTH_TOKENS.MemberRepository),
+            c.resolve(AUTH_TOKENS.WowAccountRepository),
+            c.resolve(AUTH_TOKENS.RealmsRepository)
+        );
+    });
+    container.singleton(AUTH_TOKENS.SyncMembersToNewUserUseCase, (c) => {
+        return new SyncMembersToNewUserUseCase(
+            c.resolve(AUTH_TOKENS.MemberRepository)
+        );
+    });
+    container.singleton(AUTH_TOKENS.AuthenticateWithBattleNetUseCase, (c) => {
+        const environment = getEnvironment();
+        return new AuthenticateWithBattleNetUseCase(
+            c.resolve(AUTH_TOKENS.BlizzardOauthService),
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            new WowAccountService(environment.profileNamespaces),
+            new WowCharacterService(),
+            c.resolve(AUTH_TOKENS.MemberRepository),
+            c.resolve(AUTH_TOKENS.JwtTokenGenerator),
+            c.resolve(AUTH_TOKENS.UserContextService),
+            c.resolve(AUTH_TOKENS.WowAccountRepository),
+            environment.currentRealms.map((realm) => ({ slug: realm.slug }))
+        );
+    });
+    container.singleton(AUTH_TOKENS.AuthenticateWithDiscordUseCase, (c) => {
+        return new AuthenticateWithDiscordUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            c.resolve(AUTH_TOKENS.JwtTokenGenerator),
+            c.resolve(AUTH_TOKENS.UserContextService)
+        );
+    });
+    container.singleton(AUTH_TOKENS.LinkOAuthAccountUseCase, (c) => {
+        return new LinkOAuthAccountUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            c.resolve(AUTH_TOKENS.SyncBattlenetMembersToUserUseCase),
+            c.resolve(AUTH_TOKENS.SyncMembersToNewUserUseCase),
+            c.resolve(AUTH_TOKENS.DiscordApiClient),
+            c.resolve(AUTH_TOKENS.BlizzardOauthService)
+        );
+    });
+    container.singleton(AUTH_TOKENS.LoginUseCase, (c) => {
+        return new LoginUseCase(
+            c.resolve(AUTH_TOKENS.AuthenticateWithBattleNetUseCase),
+            c.resolve(AUTH_TOKENS.AuthenticateWithDiscordUseCase),
+            c.resolve(DATABASE_TOKENS.RedisStore)
+        );
+    });
+    container.singleton(AUTH_TOKENS.RefreshTokenUseCase, (c) => {
+        return new RefreshSessionTokenUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            c.resolve(AUTH_TOKENS.JwtTokenGenerator),
+            c.resolve(AUTH_TOKENS.UserContextService),
+            c.resolve(AUTH_TOKENS.EventTrackingService)
+        );
+    });
+    container.singleton(AUTH_TOKENS.GetSessionUseCase, (c) => {
+        return new GetSessionUseCase(
+            c.resolve(AUTH_TOKENS.RefreshTokenUseCase),
+            c.resolve(DATABASE_TOKENS.RedisStore)
+        );
+    });
+    container.singleton(AUTH_TOKENS.GetMyProfileUseCase, (c) => {
+        return new GetMyProfileUseCase(
+            c.resolve(AUTH_TOKENS.MemberRepository),
+            c.resolve(AUTH_TOKENS.AuthRepository)
+        );
+    });
+    container.singleton(AUTH_TOKENS.GetUserSessionsUseCase, (c) => {
+        return new GetUserSessionsUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository)
+        );
+    });
+    container.singleton(AUTH_TOKENS.RevokeTokenUseCase, (c) => {
+        return new RevokeTokenUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository),
+            c.resolve(AUTH_TOKENS.EventTrackingService)
+        );
+    });
+    container.singleton(AUTH_TOKENS.RevokeAllTokensUseCase, (c) => {
+        return new RevokeAllTokensUseCase(
+            c.resolve(AUTH_TOKENS.AuthRepository)
+        );
+    });
+}

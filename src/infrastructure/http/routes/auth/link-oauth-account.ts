@@ -1,37 +1,46 @@
+import { AuthError } from "@errors/auth-error";
 import { LinkOauthAccountController } from "@http/controllers/auth/link-oauth-account-controller";
 import { createRoute } from "@http/hono-adapter";
-import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
     LinkOAuthAccountSchema,
     linkOAuthAccountSchema,
 } from "@http/validators/schemas/auth-schema";
-import { LinkOAuthAccountUseCaseFactory } from "@infrastructure/factories/auth/link-oauth-account-usecase-factory";
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 
-const route = new Hono();
+export function buildLinkOAuthAccountRoute(
+    controller: LinkOauthAccountController,
+    authMiddleware: MiddlewareHandler
+) {
+    const route = new Hono();
 
-route.post(
-    "/",
-    authMiddleware,
-    createRoute<LinkOAuthAccountSchema>(
-        {
-            functionName: "auth-link-oauth-account",
-            inputSchema: linkOAuthAccountSchema,
-        },
-        async (ctx) => {
-            const usecase = LinkOAuthAccountUseCaseFactory.make();
-            const controller = new LinkOauthAccountController(usecase);
-            return controller.handle({
-                ...ctx,
-                input: {
-                    provider: ctx.input.provider,
-                    accessToken: ctx.input.accessToken,
-                    refreshToken: ctx.input.refreshToken,
-                    tokenExpiresAt: ctx.input.tokenExpiresAt,
-                },
-            });
-        }
-    )
-);
+    route.post(
+        "/",
+        authMiddleware,
+        createRoute<LinkOAuthAccountSchema>(
+            {
+                functionName: "auth-link-oauth-account",
+                inputSchema: linkOAuthAccountSchema,
+            },
+            async ({ c, input }) => {
+                const user = c.get("user");
+                if (!user) {
+                    throw new AuthError(
+                        "User not authenticated",
+                        "USER_NOT_AUTHENTICATED",
+                        401
+                    );
+                }
 
-export const linkOAuthAccountRoute = route;
+                return controller.handle({
+                    userId: user.userId,
+                    provider: input.provider,
+                    accessToken: input.accessToken,
+                    refreshToken: input.refreshToken,
+                    tokenExpiresAt: input.tokenExpiresAt,
+                });
+            }
+        )
+    );
+
+    return route;
+}

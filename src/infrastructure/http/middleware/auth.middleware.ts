@@ -1,10 +1,11 @@
-import { Context, Next } from "hono";
-import { JWTTokenService } from "../../security/jwt-token-service";
+import { Context, Next, type MiddlewareHandler } from "hono";
 import { AccessTokenPayload } from "@dto/auth/access-token-payload";
 import { createLogger, Logger } from "src/infrastructure/logging";
 import { ResponseMapper } from "@utils/map-error";
 import { Provider } from "@dto/auth/provider";
-import { authContainer } from "@infrastructure/di/auth/auth.container";
+import type { ITokenService } from "@domain/services/i-token-service";
+import { AUTH_TOKENS } from "@infrastructure/di/auth/auth.container";
+import { appContainer } from "@infrastructure/di/app.container";
 
 export interface AuthenticatedContext extends Context {
     user?: AccessTokenPayload;
@@ -12,14 +13,14 @@ export interface AuthenticatedContext extends Context {
 
 function verifyAuthenticationMiddleware(
     token: string,
-    jwtService: JWTTokenService,
+    jwtService: ITokenService,
     logger: Logger
 ): AccessTokenPayload | null {
     try {
         return jwtService.verifyAccessToken(token);
     } catch (error) {
         logger.error("Failed to verify access token", undefined, {
-            error: (error as Error)?.message ?? (error as any)?.error ?? "",
+            error: error instanceof Error ? error.message : String(error),
         });
         return null;
     }
@@ -27,14 +28,14 @@ function verifyAuthenticationMiddleware(
 
 function verifyAnonTokenMiddleware(
     token: string,
-    jwtService: JWTTokenService,
+    jwtService: ITokenService,
     logger: Logger
 ): AccessTokenPayload | null {
     try {
         return jwtService.verifyAnonToken(token);
     } catch (error) {
         logger.error("Failed to verify anon token", undefined, {
-            error: (error as Error)?.message ?? (error as any)?.error ?? "",
+            error: error instanceof Error ? error.message : String(error),
         });
         return null;
     }
@@ -42,6 +43,7 @@ function verifyAnonTokenMiddleware(
 
 export type UserPayload = {
     userId: string;
+    jti: string;
     roles: string[];
     permissions: string[];
     provider: Provider;
@@ -54,6 +56,7 @@ export type UserPayload = {
 function mapUser(payload: AccessTokenPayload): UserPayload {
     return {
         userId: payload.sub,
+        jti: payload.jti,
         roles: payload.custom_roles,
         permissions: payload.permissions,
         provider: payload.provider,
@@ -69,111 +72,136 @@ function mapUser(payload: AccessTokenPayload): UserPayload {
  * Middleware to authenticate requests using JWT access tokens
  * Extracts and verifies the Bearer token from the Authorization header
  */
-export async function authMiddleware(context: Context, next: Next) {
-    const logger = createLogger("AuthMiddleware");
-    const authHeader = context.req.header("Authorization");
+export function createAuthMiddleware(
+    tokenService: ITokenService
+): MiddlewareHandler {
+    return async (context: Context, next: Next) => {
+        const logger = createLogger("AuthMiddleware");
+        const authHeader = context.req.header("Authorization");
 
-    logger.info(`Incoming request: ${context.req.method} ${context.req.path}`);
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        logger.warn("Missing or invalid Authorization header");
-        return context.json(
-            {
-                error: true,
-                message: "Missing or invalid Authorization header",
-                code: "UNAUTHORIZED",
-            },
-            401
+        logger.info(
+            `Incoming request: ${context.req.method} ${context.req.path}`
         );
-    }
 
-    const requestId = context.req.header("X-Request-ID") || crypto.randomUUID();
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    try {
-        const tokenService =
-            authContainer.resolve<JWTTokenService>("JwtTokenGenerator");
-
-        const decoded = tokenService.decodeToken(token);
-        if (!decoded) {
-            logger.error("Failed to decode token", undefined, { token });
-            return ResponseMapper.error(
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            logger.warn("Missing or invalid Authorization header");
+            return context.json(
                 {
                     error: true,
-                    message: "Invalid token format",
-                    code: "INVALID_TOKEN",
-                    statusCode: 401,
+                    message: "Missing or invalid Authorization header",
+                    code: "UNAUTHORIZED",
                 },
-                requestId
+                401
             );
         }
 
-        const type = decoded.type;
-        const payload =
-            type === "access"
-                ? verifyAuthenticationMiddleware(token, tokenService, logger)
-                : verifyAnonTokenMiddleware(token, tokenService, logger);
-        if (!payload) {
-            logger.error("Token verification failed", undefined, { token });
-            return ResponseMapper.error(
-                {
-                    error: true,
-                    message: "Invalid or expired token",
-                    code: "INVALID_TOKEN",
-                    statusCode: 401,
-                },
-                requestId
-            );
-        }
+        const requestId =
+            context.req.header("X-Request-ID") || crypto.randomUUID();
 
-        if (payload.role === "anon") {
-            logger.info("Anonymous user authenticated");
-        } else if (payload.role === "authenticated") {
-            if (!payload.sub) {
+        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        try {
+            const decoded = tokenService.decodeToken(token);
+            if (!decoded) {
+                logger.error("Failed to decode token", undefined, { token });
                 return ResponseMapper.error(
                     {
                         error: true,
-                        message: "Invalid token payload: missing subject",
+                        message: "Invalid token format",
                         code: "INVALID_TOKEN",
                         statusCode: 401,
                     },
                     requestId
                 );
             }
-            logger.info("Authenticated user logged in");
-            context.set("user", mapUser(payload));
-            context.set("userId", payload.sub);
-        } else {
+
+            const type = decoded.type;
+            const payload =
+                type === "access"
+                    ? verifyAuthenticationMiddleware(
+                          token,
+                          tokenService,
+                          logger
+                      )
+                    : verifyAnonTokenMiddleware(token, tokenService, logger);
+            if (!payload) {
+                logger.error("Token verification failed", undefined, { token });
+                return ResponseMapper.error(
+                    {
+                        error: true,
+                        message: "Invalid or expired token",
+                        code: "INVALID_TOKEN",
+                        statusCode: 401,
+                    },
+                    requestId
+                );
+            }
+
+            if (payload.role === "anon") {
+                logger.info("Anonymous user authenticated");
+            } else if (payload.role === "authenticated") {
+                if (!payload.sub) {
+                    return ResponseMapper.error(
+                        {
+                            error: true,
+                            message: "Invalid token payload: missing subject",
+                            code: "INVALID_TOKEN",
+                            statusCode: 401,
+                        },
+                        requestId
+                    );
+                }
+                logger.info("Authenticated user logged in");
+                context.set("user", mapUser(payload));
+                context.set("userId", payload.sub);
+            } else {
+                return ResponseMapper.error(
+                    {
+                        error: true,
+                        message: "Invalid token payload: unknown role",
+                        code: "INVALID_TOKEN",
+                        statusCode: 401,
+                    },
+                    requestId
+                );
+            }
+
+            await next();
+        } catch (error) {
+            logger.error(
+                "Error during authentication middleware execution",
+                undefined,
+                {
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Unknown error",
+                }
+            );
             return ResponseMapper.error(
                 {
                     error: true,
-                    message: "Invalid token payload: unknown role",
+                    message: "Invalid or expired token",
                     code: "INVALID_TOKEN",
-                    statusCode: 401,
+                    details:
+                        error instanceof Error
+                            ? error.message
+                            : "Unknown error",
                 },
                 requestId
             );
         }
-
-        await next();
-    } catch (error) {
-        logger.error(
-            "Error during authentication middleware execution",
-            undefined,
-            { error: (error as Error)?.message ?? (error as any)?.error ?? "" }
-        );
-        return ResponseMapper.error(
-            {
-                error: true,
-                message: "Invalid or expired token",
-                code: "INVALID_TOKEN",
-                details:
-                    error instanceof Error ? error.message : "Unknown error",
-            },
-            requestId
-        );
-    }
+    };
 }
+
+let defaultAuthMiddleware: MiddlewareHandler | undefined;
+
+// Legacy static route modules use this lazy adapter until they move to route builders.
+export const authMiddleware: MiddlewareHandler = async (context, next) => {
+    defaultAuthMiddleware ??= createAuthMiddleware(
+        appContainer.resolve(AUTH_TOKENS.JwtTokenGenerator)
+    );
+    return defaultAuthMiddleware(context, next);
+};
 
 export async function authenticatedUserMiddleware(
     context: Context,

@@ -1,49 +1,40 @@
-import { DatabaseClientFactory } from "@database/database-client-factory";
 import { createRoute } from "@http/hono-adapter";
-import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
     revokeSchema,
     RevokeInput,
 } from "@http/validators/schemas/auth-schema";
 import { RevokeTokenUseCase } from "@use-cases/revoke-token-usecase";
-import { Hono } from "hono";
-import { AuthRepository } from "src/infrastructure/repositories/auth-repository";
-import { EventTrackingService } from "@infrastructure/services/event-tracking-service";
+import { Hono, type MiddlewareHandler } from "hono";
 
-const revokeRoute = new Hono();
+export function buildRevokeRoute(
+    useCase: RevokeTokenUseCase,
+    authMiddleware: MiddlewareHandler
+) {
+    const revokeRoute = new Hono();
 
-revokeRoute.post(
-    "/",
-    authMiddleware,
-    createRoute<RevokeInput>(
-        {
-            functionName: "auth-revoke",
-            inputSchema: revokeSchema,
-        },
-        async ({ c, input }) => {
-            const user = c.get("user");
+    revokeRoute.post(
+        "/",
+        authMiddleware,
+        createRoute<RevokeInput>(
+            {
+                functionName: "auth-revoke",
+                inputSchema: revokeSchema,
+            },
+            async ({ c, input }) => {
+                const user = c.get("user");
 
-            if (!user) {
-                throw new Error("User not authenticated");
+                if (!user) {
+                    throw new Error("User not authenticated");
+                }
+
+                return useCase.execute({
+                    userId: user.userId,
+                    tokenJti: input.token_jti,
+                    reason: "manual",
+                });
             }
+        )
+    );
 
-            const database = DatabaseClientFactory.getInstance();
-            const authRepository = new AuthRepository(database);
-            const eventTracker = new EventTrackingService();
-            const useCase = new RevokeTokenUseCase(
-                authRepository,
-                eventTracker
-            );
-
-            const result = await useCase.execute({
-                userId: user.userId,
-                tokenJti: input.token_jti,
-                reason: "manual",
-            });
-
-            return result;
-        }
-    )
-);
-
-export { revokeRoute };
+    return revokeRoute;
+}

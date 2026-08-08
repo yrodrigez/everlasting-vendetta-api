@@ -1,6 +1,7 @@
 import { createRoute } from "@http/hono-adapter";
 import { Hono } from "hono";
 import { DatabaseClientFactory } from "@database/database-client-factory";
+import { SQLDatabaseClientFactory } from "@database/sql/sql-database-client-factory";
 import { MemberRepository } from "@infrastructure/repositories/member-repository";
 import { AuthRepository } from "@infrastructure/repositories/auth-repository";
 import { GetSelectedCharacterByDiscordIdUseCase } from "@use-cases/get-selected-character-by-discord-id-usecase";
@@ -24,8 +25,12 @@ getSelectedCharacterByDiscordIdRoute.get(
         },
         async ({ params }) => {
             const databaseClient = DatabaseClientFactory.getInstance();
+            const sqlDatabaseClient = SQLDatabaseClientFactory.getInstance();
             const authRepository = new AuthRepository(databaseClient);
-            const memberRepository = new MemberRepository(databaseClient);
+            const memberRepository = new MemberRepository(
+                databaseClient,
+                sqlDatabaseClient
+            );
 
             const useCase = new GetSelectedCharacterByDiscordIdUseCase(
                 authRepository,

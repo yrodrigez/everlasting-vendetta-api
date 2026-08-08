@@ -1,12 +1,10 @@
 import { createRoute, RouteContext } from "@http/hono-adapter";
-import { authMiddleware } from "@http/middleware/auth.middleware";
 import {
     vxAdminMiddleware,
     guildMemberMiddleware,
 } from "@http/middleware/guild-member.middleware";
-import { evxContainer } from "@infrastructure/di/evx/evx.container";
 import { CreatePredictionMarketUseCase } from "@use-cases/evx/predictions/create-prediction-market.usecase";
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { z } from "zod/v3";
 
 const createPredictionMarketSchema = z.object({
@@ -23,36 +21,41 @@ const createPredictionMarketSchema = z.object({
 
 type CreatePredictionMarketInput = z.infer<typeof createPredictionMarketSchema>;
 
-const createPredictionMarketRoute = new Hono();
+export function buildCreatePredictionMarketRoute(
+    useCase: CreatePredictionMarketUseCase,
+    authMiddleware: MiddlewareHandler
+) {
+    const createPredictionMarketRoute = new Hono();
 
-createPredictionMarketRoute.post(
-    "/markets",
-    authMiddleware,
-    guildMemberMiddleware,
-    vxAdminMiddleware,
-    createRoute<CreatePredictionMarketInput>(
-        {
-            functionName: "create-prediction-market",
-            inputSchema: createPredictionMarketSchema,
-        },
-        async ({ input, user }: RouteContext<CreatePredictionMarketInput>) => {
-            if (!user) {
-                return {
-                    status: 401,
-                    body: {
-                        error: "Unauthorized",
-                    },
-                };
+    createPredictionMarketRoute.post(
+        "/markets",
+        authMiddleware,
+        guildMemberMiddleware,
+        vxAdminMiddleware,
+        createRoute<CreatePredictionMarketInput>(
+            {
+                functionName: "create-prediction-market",
+                inputSchema: createPredictionMarketSchema,
+            },
+            async ({
+                input,
+                user,
+            }: RouteContext<CreatePredictionMarketInput>) => {
+                if (!user) {
+                    return {
+                        status: 401,
+                        body: {
+                            error: "Unauthorized",
+                        },
+                    };
+                }
+
+                const market = await useCase.execute(input, user.userId);
+
+                return { market };
             }
+        )
+    );
 
-            const usecase = evxContainer.resolve<CreatePredictionMarketUseCase>(
-                "CreatePredictionMarketUseCase"
-            );
-            const market = await usecase.execute(input, user.userId);
-
-            return { market };
-        }
-    )
-);
-
-export { createPredictionMarketRoute };
+    return createPredictionMarketRoute;
+}
